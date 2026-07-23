@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const adminRoutes = require('./controllers/adminController');
 const facultyRoutes = require('./controllers/facultyController');
+const studentRoutes = require('./controllers/studentController');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -20,6 +21,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads
 
 app.use('/api/admin', upload.single('file'), adminRoutes);
 app.use('/api/faculty', upload.single('file'), facultyRoutes);
+app.use('/api/student', upload.single('file'), studentRoutes);
 app.use(errorHandler);
 
 module.exports = app;

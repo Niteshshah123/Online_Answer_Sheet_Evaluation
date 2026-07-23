@@ -14,6 +14,11 @@ import ReportsPage from './pages/ReportsPage';
 import FacultyAssignmentsPage from './pages/FacultyAssignmentsPage';
 import FacultyEvaluationPage from './pages/FacultyEvaluationPage';
 import TeachersPage from './pages/TeachersPage';
+import StudentLoginPage from './pages/StudentLoginPage';
+import StudentDashboardPage from './pages/StudentDashboardPage';
+import StudentReportPage from './pages/StudentReportPage';
+import StudentPasswordPage from './pages/StudentPasswordPage';
+import StudentLayout from './components/StudentLayout';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('adminToken');
@@ -23,6 +28,11 @@ function ProtectedRoute({ children }) {
 function FacultyProtectedRoute({ children }) {
   const token = localStorage.getItem('facultyToken');
   return token ? children : <Navigate to="/faculty/login" replace />;
+}
+
+function StudentProtectedRoute({ children }) {
+  const token = localStorage.getItem('studentToken');
+  return token ? children : <Navigate to="/student/login" replace />;
 }
 
 function App() {
@@ -38,6 +48,7 @@ function App() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/faculty/login" element={<FacultyLoginPage />} />
+      <Route path="/student/login" element={<StudentLoginPage />} />
       <Route
         path="/"
         element={
@@ -67,6 +78,19 @@ function App() {
         <Route path="dashboard" element={<FacultyDashboardPage />} />
         <Route path="assignments" element={<FacultyAssignmentsPage />} />
         <Route path="evaluate/:sheetId" element={<FacultyEvaluationPage />} />
+      </Route>
+      <Route
+        path="/student"
+        element={
+          <StudentProtectedRoute>
+            <StudentLayout />
+          </StudentProtectedRoute>
+        }
+      >
+        <Route index element={<StudentDashboardPage />} />
+        <Route path="dashboard" element={<StudentDashboardPage />} />
+        <Route path="report/:sheetId" element={<StudentReportPage />} />
+        <Route path="password" element={<StudentPasswordPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -52,9 +52,28 @@ class ImportService {
     if (!student) {
       student = await StudentRepository.create({
         registrationNumber: row.registrationNumber,
-        name: row.studentName
+        name: row.studentName,
+        email: row.studentEmail || ''
       });
     }
+
+    if (row.studentEmail) {
+      const normalizedEmail = String(row.studentEmail).trim().toLowerCase();
+      let user = await User.findOne({ email: normalizedEmail });
+      if (!user) {
+        const hashedPassword = await bcrypt.hash('admin123', 10);
+        user = await User.create({
+          role: 'STUDENT',
+          email: normalizedEmail,
+          password: hashedPassword,
+          name: row.studentName
+        });
+      }
+      student.email = normalizedEmail;
+      student.userId = user._id;
+      await student.save();
+    }
+
     return student;
   }
 

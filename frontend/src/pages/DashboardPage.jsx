@@ -4,9 +4,9 @@ import axios from 'axios';
 const cardData = [
   { key: 'totalExams', label: 'Total Exams' },
   { key: 'totalStudents', label: 'Total Students' },
-  { key: 'checkedPapers', label: 'Checked Papers' },
-  { key: 'remainingPapers', label: 'Remaining Papers' },
-  { key: 'lockedEvaluations', label: 'Locked Evaluations' }
+  { key: 'checkedPapers', label: 'Checked Questions' },
+  { key: 'remainingPapers', label: 'Remaining Questions' },
+  { key: 'lockedEvaluations', label: 'Locked Questions' }
 ];
 
 export default function DashboardPage() {

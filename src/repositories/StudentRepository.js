@@ -9,6 +9,10 @@ class StudentRepository extends BaseRepository {
   async findByRegistrationNumber(registrationNumber) {
     return this.model.findOne({ registrationNumber });
   }
+
+  async findByEmail(email) {
+    return this.model.findOne({ email });
+  }
 }
 
 module.exports = new StudentRepository();

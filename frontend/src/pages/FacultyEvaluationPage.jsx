@@ -46,7 +46,7 @@ export default function FacultyEvaluationPage() {
     if (!url) return null;
     if (/^(https?:)?\/\//.test(url)) return url;
     if (window.location.port === '5173') {
-      return `http://localhost:3000/${url}`;
+      return `http://localhost:3000${url}`;
     }
     return url;
   };

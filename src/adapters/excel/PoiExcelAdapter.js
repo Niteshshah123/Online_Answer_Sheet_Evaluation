@@ -11,6 +11,7 @@ class PoiExcelAdapter extends ExcelAdapter {
     return rows.map((row) => ({
       registrationNumber: row.registrationNumber || row.RegistrationNumber || '',
       studentName: row.studentName || row.StudentName || '',
+      studentEmail: row.studentEmail || row.StudentEmail || '',
       course: row.course || row.Course || '',
       subject: row.subject || row.Subject || '',
       semester: row.semester || row.Semester || '',

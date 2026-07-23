@@ -13,6 +13,18 @@ async function seedData() {
     });
     console.log('Seeded admin user: admin@example.com / admin123');
   }
+
+  const existingStudent = await User.findOne({ email: 'student@example.com' });
+  if (!existingStudent) {
+    const hashedPassword = await bcrypt.hash('admin123', 10);
+    await User.create({
+      role: 'STUDENT',
+      email: 'student@example.com',
+      password: hashedPassword,
+      name: 'Sample Student'
+    });
+    console.log('Seeded student user: student@example.com / admin123');
+  }
 }
 
 module.exports = seedData;
