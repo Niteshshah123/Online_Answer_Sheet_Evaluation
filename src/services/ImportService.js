@@ -7,10 +7,9 @@ const FacultyMappingRepository = require('../repositories/FacultyMappingReposito
 const FacultyRepository = require('../repositories/FacultyRepository');
 const User = require('../models/entities/userModel');
 const AnswerSheetRepository = require('../repositories/AnswerSheetRepository');
-const AnswerKeyRepository = require('../repositories/AnswerKeyRepository');
 const QuestionAllocationRepository = require('../repositories/QuestionAllocationRepository');
 const QuestionEvaluationRepository = require('../repositories/QuestionEvaluationRepository');
-const strategyFactory = require('../factories/StrategyFactory');
+const EqualDistributionStrategy = require('../strategies/distribution/EqualDistributionStrategy');
 const dashboardObserver = require('../observers/DashboardObserver');
 const auditObserver = require('../observers/AuditObserver');
 const dashboardService = require('./DashboardService');
@@ -18,6 +17,7 @@ const dashboardService = require('./DashboardService');
 class ImportService {
   constructor() {
     this.excelAdapter = new PoiExcelAdapter();
+    this.equalStrategy = new EqualDistributionStrategy();
   }
 
   async importFromExcel(fileBuffer) {
@@ -32,7 +32,7 @@ class ImportService {
       const exam = await this.ensureExam(row);
       await this.ensureFacultyForRow(row, exam);
       await this.ensureAnswerSheet(student._id, exam._id, row.answerSheetPdfLink);
-      await this.ensureAnswerKey(exam._id, row.answerKeyPdfLink);
+      await this.ensureAnswerKey(exam, row.answerKeyPdfLink);
     }
 
     const exams = await ExamRepository.findAll();
@@ -90,7 +90,10 @@ class ImportService {
       const rawMarks = String(row.questionMarks || '')
         .split(',')
         .map((item) => Number(item.trim()))
-        .filter((value) => !Number.isNaN(value));
+        .filter((value) => !Number.isNaN(value) && value > 0);
+
+      const examTypeLower = String(row.examType || '').toLowerCase();
+      const defaultConvertedScale = (examTypeLower.includes('mid') || examTypeLower.includes('internal')) ? 20 : 30;
 
       exam = await ExamRepository.create({
         course: row.course,
@@ -98,7 +101,8 @@ class ImportService {
         semester: row.semester,
         section: row.section,
         examType: row.examType,
-        questionWeightage: rawMarks,
+        questionWeightage: rawMarks.length ? rawMarks : [10, 10, 10, 10, 10],
+        convertedScale: defaultConvertedScale,
         answerKeyUrl: row.answerKeyPdfLink || ''
       });
     }
@@ -164,10 +168,10 @@ class ImportService {
     }
   }
 
-  async ensureAnswerKey(examId, pdfUrl) {
-    const existing = await AnswerKeyRepository.findByExamId(examId);
-    if (!existing) {
-      await AnswerKeyRepository.create({ examId, pdfUrl });
+  async ensureAnswerKey(exam, pdfUrl) {
+    if (exam && pdfUrl && !exam.answerKeyUrl) {
+      exam.answerKeyUrl = pdfUrl;
+      await exam.save();
     }
   }
 
@@ -189,10 +193,8 @@ class ImportService {
       return;
     }
 
-    const facultyIds = mappings.map((mapping) => mapping.facultyId);
-    const questionCount = exam.questionWeightage.length || 10;
-    const strategy = strategyFactory.create('EQUAL');
-    const allocations = strategy.distribute(questionCount, facultyIds);
+    const facultyIds = mappings.map((mapping) => mapping.facultyId.toString());
+    const allocations = this.equalStrategy.distribute(exam.questionWeightage, facultyIds);
 
     for (const allocation of allocations) {
       await QuestionAllocationRepository.create({
@@ -204,6 +206,7 @@ class ImportService {
       });
     }
   }
+
 
   async ensureEvaluationsForExam(exam) {
     const answerSheets = await AnswerSheetRepository.findAll({ examId: exam._id });

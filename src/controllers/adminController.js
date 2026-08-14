@@ -141,6 +141,15 @@ router.get('/exams', authMiddleware, async (req, res, next) => {
   }
 });
 
+router.post('/exams/:id/publish', authMiddleware, async (req, res, next) => {
+  try {
+    const result = await adminFacade.togglePublishExam(req.params.id, req.user.email);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/reports', authMiddleware, async (req, res, next) => {
   try {
     const result = await adminFacade.getReports();

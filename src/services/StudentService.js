@@ -82,18 +82,23 @@ class StudentService {
 
     for (const sheet of sheets) {
       const exam = await ExamRepository.findById(sheet.examId);
+      const isPublished = Boolean(exam?.isPublished);
       const evaluations = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
-      const status = evaluations.some((item) => item.status === 'LOCKED')
+      
+      const evalStatus = evaluations.some((item) => item.status === 'LOCKED')
         ? 'Reviewed'
         : evaluations.some((item) => item.status === 'DRAFT' || item.status === 'SUBMITTED')
           ? 'In Progress'
           : 'Pending';
+
+      const status = isPublished ? evalStatus : 'Result Not Published Yet';
 
       papers.push({
         sheetId: sheet._id,
         examName: exam ? `${exam.course} / ${exam.subject}` : 'Unknown exam',
         examContext: exam ? `${exam.semester} ${exam.section} ${exam.examType}` : '',
         pdfUrl: sheet.pdfUrl || '',
+        isPublished,
         status
       });
     }
@@ -122,6 +127,10 @@ class StudentService {
     }
 
     const exam = await ExamRepository.findById(sheet.examId);
+    if (!exam || !exam.isPublished) {
+      throw new AppError('Results for this examination have not been published by the Examination Cell yet.', 403);
+    }
+
     const evaluations = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
 
     const enrichedEvaluations = [];
@@ -135,16 +144,22 @@ class StudentService {
     }
 
     const summary = buildReportSummary(enrichedEvaluations, exam?.questionWeightage || []);
+    const convertedScale = exam?.convertedScale || 30;
+    const convertedMarks = summary.fullMarks > 0
+      ? Number(((summary.marksObtained / summary.fullMarks) * convertedScale).toFixed(2))
+      : 0;
 
     return {
       studentName: student.name || user.name,
       sheetId: sheet._id,
       sheetPdfUrl: sheet.pdfUrl || '',
       answerKeyUrl: exam?.answerKeyUrl || '',
-      examName: exam ? `${exam.course} / ${exam.subject}` : 'Unknown exam',
-      examContext: exam ? `${exam.semester} ${exam.section} ${exam.examType}` : '',
+      examName: `${exam.course} / ${exam.subject}`,
+      examContext: `${exam.semester} ${exam.section} ${exam.examType}`,
       fullMarks: summary.fullMarks,
       marksObtained: summary.marksObtained,
+      convertedScale,
+      convertedMarks,
       evaluations: summary.evaluations
     };
   }

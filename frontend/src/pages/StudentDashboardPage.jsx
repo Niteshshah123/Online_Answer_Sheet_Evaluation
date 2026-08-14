@@ -42,9 +42,32 @@ export default function StudentDashboardPage() {
           <div className="card" key={paper.sheetId}>
             <h3>{paper.examName}</h3>
             <p className="muted">{paper.examContext}</p>
-            <p className="badge" style={{ marginTop: '8px' }}>{paper.status}</p>
-            <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
-              <button onClick={() => navigate(`/student/report/${paper.sheetId}`)}>View Report</button>
+            <div style={{ marginTop: '8px' }}>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  background: paper.isPublished ? '#dcfce7' : '#fffbe6',
+                  color: paper.isPublished ? '#15803d' : '#b45309',
+                  border: `1px solid ${paper.isPublished ? '#86efac' : '#fde68a'}`
+                }}
+              >
+                {paper.status}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
+              <button
+                disabled={!paper.isPublished}
+                onClick={() => navigate(`/student/report/${paper.sheetId}`)}
+                style={{
+                  background: !paper.isPublished ? '#cbd5e1' : '#2563eb',
+                  cursor: !paper.isPublished ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {paper.isPublished ? 'View Full Report' : 'Result Pending'}
+              </button>
             </div>
           </div>
         ))}

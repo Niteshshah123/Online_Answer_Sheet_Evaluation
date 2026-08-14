@@ -2,11 +2,13 @@ class DashboardResponseDto {
   constructor(data) {
     this.totalExams = data.totalExams;
     this.totalStudents = data.totalStudents;
-    this.checkedPapers = data.checkedPapers;
-    this.remainingPapers = data.remainingPapers;
-    this.lockedEvaluations = data.lockedEvaluations;
-    this.submittedEvaluations = data.submittedEvaluations;
+    this.totalAnswerSheets = data.totalAnswerSheets;
+    this.checkedPapersCount = data.checkedPapersCount;
+    this.partiallyCheckedPapersCount = data.partiallyCheckedPapersCount;
+    this.notCheckedPapersCount = data.notCheckedPapersCount;
+    this.facultyProgress = data.facultyProgress || [];
   }
 }
 
 module.exports = DashboardResponseDto;
+

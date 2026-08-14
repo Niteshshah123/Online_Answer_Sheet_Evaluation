@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import FacultyLoginPage from './pages/FacultyLoginPage';
 import DashboardPage from './pages/DashboardPage';
 import FacultyDashboardPage from './pages/FacultyDashboardPage';
+import ExamsPage from './pages/ExamsPage';
 import ImportPage from './pages/ImportPage';
 import DistributionPage from './pages/DistributionPage';
 import UnlockPage from './pages/UnlockPage';
@@ -59,8 +60,8 @@ function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="exams" element={<ExamsPage />} />
         <Route path="import" element={<ImportPage />} />
-        <Route path="distribution" element={<DistributionPage />} />
         <Route path="teachers" element={<TeachersPage />} />
         <Route path="unlock" element={<UnlockPage />} />
         <Route path="audit-logs" element={<AuditLogsPage />} />

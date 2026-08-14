@@ -18,10 +18,8 @@ class FacultyEvaluationService {
     const allocations = await QuestionAllocationRepository.findByFacultyId(faculty._id);
     const relevant = allocations.filter((allocation) => allocation.examId.toString() === sheet.examId.toString());
 
-    // console.log(relevant.length);
-
     if (!relevant.length) {
-      return { sheetId: sheet._id, sheetPdfUrl: sheet.pdfUrl || '', answerKeyUrl: '', evaluations: [] };
+      return { sheetId: sheet._id, sheetPdfUrl: sheet.pdfUrl || '', answerKeyUrl: '', evaluations: [], convertedScale: 30 };
     }
 
     const evaluations = await QuestionEvaluationRepository.findAll({
@@ -31,6 +29,7 @@ class FacultyEvaluationService {
 
     const exam = await ExamRepository.findById(sheet.examId);
     const answerKeyUrl = exam ? (exam.answerKeyUrl || '') : '';
+    const convertedScale = exam?.convertedScale || 30;
 
     const filtered = evaluations
       .filter((item) => relevant.some((allocation) => item.questionNumber >= allocation.fromQuestion && item.questionNumber <= allocation.toQuestion))
@@ -44,7 +43,13 @@ class FacultyEvaluationService {
       }))
       .sort((a, b) => a.questionNumber - b.questionNumber);
 
-    return { sheetId: sheet._id, sheetPdfUrl: sheet.pdfUrl || '', answerKeyUrl, evaluations: filtered };
+    return {
+      sheetId: sheet._id,
+      sheetPdfUrl: sheet.pdfUrl || '',
+      answerKeyUrl,
+      convertedScale,
+      evaluations: filtered
+    };
   }
 
   async saveDraft(facultyEmail, sheetId, updates) {
@@ -54,21 +59,29 @@ class FacultyEvaluationService {
     const sheet = await AnswerSheetRepository.findById(sheetId);
     if (!sheet) throw new AppError('Answer sheet not found', 404);
 
+    const exam = await ExamRepository.findById(sheet.examId);
+
     for (const update of updates || []) {
       const evaluation = await QuestionEvaluationRepository.findById(update.evaluationId);
       if (!evaluation) continue;
       if (evaluation.facultyId.toString() !== faculty._id.toString()) continue;
       if (evaluation.sheetId.toString() !== sheetId) continue;
       if (evaluation.status === 'LOCKED' || evaluation.status === 'UNLOCK_REQUESTED') continue;
-      if (update.marksObtained !== undefined && update.marksObtained !== null) {
-        // clamp to question max if available
-        const sheetForEval = await AnswerSheetRepository.findById(evaluation.sheetId);
-        const examForEval = sheetForEval ? await ExamRepository.findById(sheetForEval.examId) : null;
-        const maxMark = examForEval?.questionWeightage?.[evaluation.questionNumber - 1];
-        evaluation.marksObtained = (maxMark != null) ? Math.min(update.marksObtained, maxMark) : update.marksObtained;
+
+      if (update.marksObtained !== undefined && update.marksObtained !== null && update.marksObtained !== '') {
+        const val = Number(update.marksObtained);
+        if (Number.isNaN(val)) throw new AppError(`Invalid numeric mark for Q${evaluation.questionNumber}`, 400);
+        if (val < 0) throw new AppError(`Marks for Question ${evaluation.questionNumber} cannot be negative`, 400);
+
+        const maxMark = exam?.questionWeightage?.[evaluation.questionNumber - 1];
+        if (maxMark != null && val > maxMark) {
+          throw new AppError(`Marks for Question ${evaluation.questionNumber} (${val}) cannot exceed maximum allowed mark (${maxMark})`, 400);
+        }
+        evaluation.marksObtained = val;
       } else {
-        evaluation.marksObtained = update.marksObtained ?? evaluation.marksObtained;
+        evaluation.marksObtained = null;
       }
+
       evaluation.review = update.review ?? evaluation.review;
       evaluation.status = 'DRAFT';
       evaluation.updatedAt = new Date();
@@ -86,20 +99,45 @@ class FacultyEvaluationService {
     const sheet = await AnswerSheetRepository.findById(sheetId);
     if (!sheet) throw new AppError('Answer sheet not found', 404);
 
+    const exam = await ExamRepository.findById(sheet.examId);
+
+    // Verify that ALL assigned evaluations for this faculty & sheet have a valid mark
+    const assignedEvaluations = await QuestionEvaluationRepository.findAll({
+      sheetId,
+      facultyId: faculty._id
+    });
+
+    if (!assignedEvaluations.length) {
+      throw new AppError('No assigned questions found for this sheet', 400);
+    }
+
+    const updateMap = new Map();
+    (updates || []).forEach((u) => updateMap.set(String(u.evaluationId), u));
+
+    for (const ev of assignedEvaluations) {
+      const u = updateMap.get(String(ev._id));
+      const markValue = u ? u.marksObtained : ev.marksObtained;
+      if (markValue === null || markValue === undefined || markValue === '') {
+        throw new AppError(`Cannot submit evaluation: Question ${ev.questionNumber} has not been evaluated yet. All assigned questions must be marked before submission.`, 400);
+      }
+    }
+
     for (const update of updates || []) {
       const evaluation = await QuestionEvaluationRepository.findById(update.evaluationId);
       if (!evaluation) continue;
       if (evaluation.facultyId.toString() !== faculty._id.toString()) continue;
       if (evaluation.sheetId.toString() !== sheetId) continue;
       if (evaluation.status === 'LOCKED' || evaluation.status === 'UNLOCK_REQUESTED') continue;
-      if (update.marksObtained !== undefined && update.marksObtained !== null) {
-        const sheetForEval = await AnswerSheetRepository.findById(evaluation.sheetId);
-        const examForEval = sheetForEval ? await ExamRepository.findById(sheetForEval.examId) : null;
-        const maxMark = examForEval?.questionWeightage?.[evaluation.questionNumber - 1];
-        evaluation.marksObtained = (maxMark != null) ? Math.min(update.marksObtained, maxMark) : update.marksObtained;
-      } else {
-        evaluation.marksObtained = update.marksObtained ?? evaluation.marksObtained;
+
+      const val = Number(update.marksObtained);
+      if (Number.isNaN(val)) throw new AppError(`Invalid numeric mark for Q${evaluation.questionNumber}`, 400);
+      if (val < 0) throw new AppError(`Marks for Question ${evaluation.questionNumber} cannot be negative`, 400);
+
+      const maxMark = exam?.questionWeightage?.[evaluation.questionNumber - 1];
+      if (maxMark != null && val > maxMark) {
+        throw new AppError(`Marks for Question ${evaluation.questionNumber} (${val}) cannot exceed maximum allowed mark (${maxMark})`, 400);
       }
+      evaluation.marksObtained = val;
       evaluation.review = update.review ?? evaluation.review;
       evaluation.status = 'LOCKED';
       evaluation.updatedAt = new Date();
@@ -158,7 +196,7 @@ class FacultyEvaluationService {
           registrationNumber: student?.registrationNumber || 'N/A',
           examName: exam ? `${exam.course} / ${exam.subject}` : 'Unknown',
           questionRange: min && max ? `Q${min} to Q${max}` : 'N/A',
-          status: statuses.includes('LOCKED') ? 'LOCKED' : statuses.includes('DRAFT') ? 'DRAFT' : 'PENDING'
+          status: statuses.includes('LOCKED') ? 'LOCKED' : statuses.includes('UNLOCK_REQUESTED') ? 'UNLOCK_REQUESTED' : statuses.includes('DRAFT') ? 'DRAFT' : 'PENDING'
         });
       }
     }
@@ -168,3 +206,4 @@ class FacultyEvaluationService {
 }
 
 module.exports = new FacultyEvaluationService();
+

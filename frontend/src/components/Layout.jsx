@@ -2,12 +2,11 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 const links = [
   { to: '/dashboard', label: 'Dashboard' },
-  { to: '/import', label: 'Import Excel' },
-  { to: '/distribution', label: 'Distribution' },
-  { to: '/unlock', label: 'Unlock Evaluations' },
+  { to: '/exams', label: 'Exams & Result Publishing' },
   { to: '/teachers', label: 'Teachers' },
-  { to: '/audit-logs', label: 'Audit Logs' },
-  { to: '/reports', label: 'Reports' }
+  { to: '/unlock', label: 'Unlock Requests' },
+  { to: '/import', label: 'Excel Import' },
+  { to: '/audit-logs', label: 'Audit Logs' }
 ];
 
 export default function Layout() {

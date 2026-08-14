@@ -50,14 +50,18 @@ export default function StudentReportPage() {
           <div className="card" style={{ marginTop: '16px' }}>
             <h3>{report.examName}</h3>
             <p className="muted">{report.examContext}</p>
-            <div className="grid grid-2" style={{ marginTop: '12px' }}>
+            <div className="grid grid-3" style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
               <div className="metric">
-                <h3>Full Marks</h3>
-                <p>{report.fullMarks}</p>
+                <h3>Raw Marks</h3>
+                <p>{report.marksObtained} / {report.fullMarks}</p>
+              </div>
+              <div className="metric" style={{ background: '#f0f9ff', borderColor: '#bae6fd' }}>
+                <h3 style={{ color: '#0369a1' }}>Converted Total ({report.convertedScale || 30} Scale)</h3>
+                <p style={{ color: '#0284c7' }}>{report.convertedMarks} / {report.convertedScale || 30}</p>
               </div>
               <div className="metric">
-                <h3>Marks Obtained</h3>
-                <p>{report.marksObtained}</p>
+                <h3>Paper Status</h3>
+                <p>{report.evaluations?.every((e) => e.status === 'LOCKED') ? 'Fully Evaluated' : 'In Progress'}</p>
               </div>
             </div>
           </div>

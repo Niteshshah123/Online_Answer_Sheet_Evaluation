@@ -71,6 +71,20 @@ class AdminFacade {
     return distributionService.configureDistribution(examId, strategyType, allocations);
   }
 
+  async togglePublishExam(examId, performedBy) {
+    const ExamRepository = require('../repositories/ExamRepository');
+    const exam = await ExamRepository.findById(examId);
+    if (!exam) throw new Error('Exam not found');
+    exam.isPublished = !exam.isPublished;
+    await exam.save();
+    await AuditLogRepository.create({
+      action: exam.isPublished ? 'PUBLISH_EXAM_RESULTS' : 'UNPUBLISH_EXAM_RESULTS',
+      performedBy,
+      details: `${exam.isPublished ? 'Published' : 'Unpublished'} results for ${exam.course} / ${exam.subject} (${exam.semester} ${exam.section} ${exam.examType})`
+    });
+    return { success: true, isPublished: exam.isPublished, exam };
+  }
+
   async getReports() {
     return reportService.getReports();
   }
