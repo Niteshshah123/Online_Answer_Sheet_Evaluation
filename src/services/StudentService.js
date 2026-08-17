@@ -146,7 +146,7 @@ class StudentService {
     const summary = buildReportSummary(enrichedEvaluations, exam?.questionWeightage || []);
     const convertedScale = exam?.convertedScale || 30;
     const convertedMarks = summary.fullMarks > 0
-      ? Number(((summary.marksObtained / summary.fullMarks) * convertedScale).toFixed(2))
+      ? Math.round((summary.marksObtained / summary.fullMarks) * convertedScale)
       : 0;
 
     return {

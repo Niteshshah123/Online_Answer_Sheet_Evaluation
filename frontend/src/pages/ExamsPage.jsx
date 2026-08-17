@@ -36,6 +36,23 @@ export default function ExamsPage() {
     }
   };
 
+  const handleDeleteExam = async (examId, examContext) => {
+    if (!window.confirm(`Are you sure you want to delete exam "${examContext}"? This will delete all associated student answer sheets, question allocations, and evaluations.`)) {
+      return;
+    }
+    try {
+      setMessage('');
+      setErrorMessage('');
+      await axios.delete(`/api/admin/exams/${examId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setMessage('Exam and associated data deleted successfully.');
+      await fetchExams();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to delete exam');
+    }
+  };
+
   return (
     <div>
       <div className="page-header">

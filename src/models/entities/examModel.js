@@ -8,7 +8,10 @@ const examSchema = new mongoose.Schema({
   examType: { type: String, required: true },
   questionWeightage: [{ type: Number }],
   convertedScale: { type: Number, default: 30 },
+  questionPaperUrl: { type: String, default: '' },
   answerKeyUrl: { type: String, default: '' },
+  courseInChargeFacultyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Faculty', default: null },
+  finalSubmittedToAdmin: { type: Boolean, default: false },
   isPublished: { type: Boolean, default: false },
   status: { type: String, default: 'ACTIVE' },
   createdAt: { type: Date, default: Date.now }
