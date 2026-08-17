@@ -25,21 +25,14 @@ export default function LoginPage() {
   return (
     <AuthLayout
       roleTag="Administration Portal"
-      tagline="Centralized examination management — import data, configure distributions, monitor evaluation progress, and maintain audit records."
-      features={[
-        'Bulk import via structured Excel workbooks',
-        'Question-wise distribution to multiple evaluators',
-        'Real-time evaluation progress monitoring',
-        'Immutable audit trail for all system actions',
-      ]}
       hint="admin1@gmail.com  ·  admin1"
       links={[
         { href: '/faculty/login', label: 'Faculty Login' },
         { href: '/student/login', label: 'Student Login' },
       ]}
     >
-      <h2 className="auth-form-title">Administrator Sign In</h2>
-      <p className="auth-form-sub">Enter your credentials to access the administration console.</p>
+      <h2 className="auth-form-title">Sign In</h2>
+      <p className="auth-form-sub">Enter your credentials to access the admin console.</p>
 
       {error && <div className="alert alert-error">{error}</div>}
 

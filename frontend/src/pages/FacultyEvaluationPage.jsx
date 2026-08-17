@@ -107,6 +107,14 @@ export default function FacultyEvaluationPage() {
     setRows(cur => cur.map(r => r.evaluationId === evaluationId ? { ...r, [field]: value } : r));
   };
 
+  const [remarkOpen, setRemarkOpen] = useState({});
+  const toggleRemark = (id) => setRemarkOpen(p => ({ ...p, [id]: !p[id] }));
+
+  const updateMax = (evaluationId, value) => {
+    const v = Math.max(1, Math.round(Number(value)));
+    setRows(cur => cur.map(r => r.evaluationId === evaluationId ? { ...r, maxMark: v } : r));
+  };
+
   const validationErrors = useMemo(() => {
     const errors = {};
     rows.forEach(row => {
@@ -130,7 +138,8 @@ export default function FacultyEvaluationPage() {
       if (r.marksObtained != null && r.marksObtained !== '') rawObtained += Number(r.marksObtained);
     });
     const scale = Number(targetScale) || 30;
-    return { rawObtained, rawMax, scale, convertedScore: rawMax > 0 ? ((rawObtained / rawMax) * scale).toFixed(2) : '0.00' };
+    const raw = rawMax > 0 ? (rawObtained / rawMax) * scale : 0;
+    return { rawObtained, rawMax, scale, convertedScore: Math.round(raw) };
   }, [rows, targetScale]);
 
   const handleDraft = async () => {
@@ -326,70 +335,97 @@ export default function FacultyEvaluationPage() {
             ) : rows.length === 0 ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>No assigned questions found.</p>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {rows.map(row => {
                   const err = validationErrors[row.evaluationId];
+                  const showRemark = !!remarkOpen[row.evaluationId];
                   return (
-                    <div
-                      key={row.evaluationId}
-                      style={{
-                        border: `1px solid ${err ? 'var(--error-border)' : 'var(--border)'}`,
-                        borderRadius: 'var(--radius-md)',
-                        padding: '12px',
+                    <div key={row.evaluationId} style={{
+                      border: `1px solid ${err ? 'var(--error-border)' : 'var(--border)'}`,
+                      borderRadius: 'var(--radius-md)',
+                      background: 'var(--bg-white)',
+                      borderLeft: `3px solid ${err ? 'var(--error)' : 'var(--amrita-maroon)'}`,
+                      overflow: 'hidden',
+                    }}>
+                      {/* Card header */}
+                      <div style={{
+                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        padding: '7px 12px',
                         background: err ? 'var(--error-bg)' : 'var(--bg-subtle)',
-                        borderLeft: `3px solid ${err ? 'var(--error)' : 'var(--amrita-maroon)'}`,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Question {row.questionNumber}
-                        </span>
-                        <span className="badge badge-gray">Max: {row.maxMark ?? 'N/A'}</span>
+                        borderBottom: '1px solid var(--border)',
+                      }}>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Q{row.questionNumber}</span>
+                        {/* Editable max marks */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>MAX</span>
+                          <input
+                            type="number"
+                            value={row.maxMark ?? ''}
+                            onChange={e => updateMax(row.evaluationId, e.target.value)}
+                            disabled={isLockedOrRequested}
+                            min={1} step="1"
+                            title="Edit max marks for this question"
+                            style={{
+                              width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700,
+                              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
+                              textAlign: 'center', outline: 'none',
+                              background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white',
+                              color: 'var(--text-primary)',
+                            }}
+                          />
+                        </div>
                       </div>
 
-                      <div className="form-group" style={{ marginBottom: '8px' }}>
-                        <label className="form-label" style={{ fontSize: '0.72rem' }}>Marks Obtained</label>
-                        <input
-                          className="form-input"
-                          type="number"
-                          value={row.marksObtained ?? ''}
-                          placeholder={`0 – ${row.maxMark ?? 'max'}`}
-                          onChange={e => updateRow(row.evaluationId, 'marksObtained', e.target.value === '' ? null : Number(e.target.value))}
-                          disabled={isLockedOrRequested}
-                          min={0}
-                          max={row.maxMark ?? undefined}
-                          step="0.5"
-                          style={{
-                            borderColor: err ? 'var(--error)' : undefined,
-                            background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white',
-                            fontSize: '0.875rem',
-                            padding: '7px 10px',
-                          }}
-                        />
-                        {err && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--error)', marginTop: '3px', display: 'block' }}>
-                            {err}
-                          </span>
+                      {/* Card body */}
+                      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        {/* Marks row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input
+                            className="form-input"
+                            type="number"
+                            value={row.marksObtained ?? ''}
+                            placeholder={`0 – ${row.maxMark ?? 'max'}`}
+                            onChange={e => updateRow(row.evaluationId, 'marksObtained', e.target.value === '' ? null : Math.round(Number(e.target.value)))}
+                            disabled={isLockedOrRequested}
+                            min={0} max={row.maxMark ?? undefined} step="1"
+                            style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white', fontSize: '0.875rem', padding: '6px 10px' }}
+                          />
+                          {!isLockedOrRequested && (
+                            <button
+                              type="button"
+                              onClick={() => toggleRemark(row.evaluationId)}
+                              title={showRemark ? 'Hide remarks' : 'Add remark'}
+                              style={{
+                                flexShrink: 0, padding: '6px 10px', fontSize: '0.7rem', fontWeight: 600,
+                                border: `1px solid ${showRemark ? 'var(--amrita-maroon)' : 'var(--border)'}`,
+                                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+                                background: showRemark ? 'var(--accent-light)' : 'var(--bg-subtle)',
+                                color: showRemark ? 'var(--amrita-maroon)' : 'var(--text-muted)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {showRemark ? '− Note' : '+ Note'}
+                            </button>
+                          )}
+                        </div>
+                        {err && <span style={{ fontSize: '0.68rem', color: 'var(--error)' }}>{err}</span>}
+
+                        {/* Remarks — only shown when toggled */}
+                        {showRemark && (
+                          <textarea
+                            className="form-input"
+                            value={row.review || ''}
+                            onChange={e => updateRow(row.evaluationId, 'review', e.target.value)}
+                            placeholder="Add a note for this question..."
+                            rows={2}
+                            autoFocus
+                            style={{ resize: 'none', fontSize: '0.78rem', padding: '6px 10px' }}
+                          />
                         )}
-                      </div>
-
-                      <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" style={{ fontSize: '0.72rem' }}>
-                          Remarks <span className="form-label-optional">(optional)</span>
-                        </label>
-                        <textarea
-                          className="form-input"
-                          value={row.review || ''}
-                          onChange={e => updateRow(row.evaluationId, 'review', e.target.value)}
-                          disabled={isLockedOrRequested}
-                          placeholder="Evaluator notes..."
-                          rows={2}
-                          style={{
-                            resize: 'none',
-                            fontSize: '0.8rem',
-                            background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white',
-                          }}
-                        />
+                        {/* Show existing remark read-only when locked */}
+                        {isLockedOrRequested && row.review && (
+                          <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>{row.review}</p>
+                        )}
                       </div>
                     </div>
                   );
@@ -403,48 +439,40 @@ export default function FacultyEvaluationPage() {
             <div style={{ borderTop: '1px solid var(--border)', padding: '14px', flexShrink: 0, background: 'white' }}>
 
               {/* Score summary */}
-              <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent-border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--amrita-maroon)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Raw Score
-                  </span>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
+              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '12px' }}>
+
+                {/* Raw score row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Raw Score</span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                     {totals.rawObtained} / {totals.rawMax}
                   </span>
                 </div>
 
-                {/* Target scale selector */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '10px' }}>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Scale</span>
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    {[20, 30, 50].map(s => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setTargetScale(s)}
-                        style={{
-                          padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600,
-                          border: '1px solid', borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                          background: targetScale === s ? 'var(--amrita-maroon)' : 'white',
-                          color: targetScale === s ? 'white' : 'var(--text-secondary)',
-                          borderColor: targetScale === s ? 'var(--amrita-maroon)' : 'var(--border)',
-                        }}
-                      >
-                        {s}
-                      </button>
-                    ))}
+                {/* Scale input */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingBottom: '10px', borderBottom: '1px solid var(--border)', marginBottom: '10px' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Convert to</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <input
                       type="number"
                       value={targetScale}
-                      onChange={e => setTargetScale(Number(e.target.value))}
-                      style={{ width: '48px', padding: '3px 6px', fontSize: '0.72rem', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none' }}
+                      min={1}
+                      onChange={e => setTargetScale(Math.max(1, Math.round(Number(e.target.value))))}
+                      style={{
+                        width: '60px', padding: '5px 8px', fontSize: '0.82rem', fontWeight: 700,
+                        border: '1px solid var(--amrita-maroon)', borderRadius: 'var(--radius-sm)',
+                        textAlign: 'center', outline: 'none', color: 'var(--amrita-maroon)',
+                        background: 'var(--accent-light)',
+                      }}
                     />
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>marks</span>
                   </div>
                 </div>
 
-                <div style={{ borderTop: '1px solid var(--accent-border)', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--amrita-maroon)' }}>Converted Score</span>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>
+                {/* Converted score */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--amrita-maroon)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Converted Score</span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>
                     {totals.convertedScore} / {totals.scale}
                   </span>
                 </div>
@@ -467,7 +495,7 @@ export default function FacultyEvaluationPage() {
                     </p>
                   )}
                   <button className="btn btn-ghost btn-full" onClick={handleDraft} disabled={hasErrors}>
-                    Save as Draft
+                    Save
                   </button>
                 </div>
               ) : statusSummary === 'LOCKED' ? (

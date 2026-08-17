@@ -1,20 +1,11 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-const COLUMNS = [
-  ['registrationNumber', 'RA2111003010001'],
-  ['studentName', 'John Doe'],
-  ['studentEmail', 'john@amrita.edu'],
-  ['course', 'CSE'],
-  ['subject', 'DBMS'],
-  ['semester', 'Sem 4'],
-  ['section', 'Sec A'],
-  ['examType', 'Midsem / Endsem'],
-  ['answerSheetPdfLink', '/uploads/sheets/s1.pdf'],
-  ['answerKeyPdfLink', '/uploads/keys/k1.pdf'],
-  ['questionMarks', '10, 10, 10, 5, 5'],
-  ['facultyName', 'Dr. Alan Turing'],
-  ['facultyEmail', 'alan@amrita.edu'],
+const SCHEMA = [
+  { group: 'Student',  cols: ['registrationNumber', 'studentName', 'studentEmail'] },
+  { group: 'Exam',     cols: ['course', 'subject', 'semester', 'section', 'examType', 'questionMarks'] },
+  { group: 'Files',    cols: ['answerSheetPdfLink', 'answerKeyPdfLink'] },
+  { group: 'Faculty',  cols: ['facultyName', 'facultyEmail'] },
 ];
 
 const UploadIcon = () => (
@@ -121,23 +112,30 @@ export default function ImportPage() {
 
         {/* Schema reference */}
         <div className="card">
-          <div className="card-header"><h2>Required Column Headers</h2></div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Column Name</th>
-                <th>Example Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {COLUMNS.map(([col, ex]) => (
-                <tr key={col}>
-                  <td><code>{col}</code></td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{ex}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="card-header"><h2>Column Reference</h2></div>
+          <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {SCHEMA.map(({ group, cols }) => (
+              <div key={group}>
+                <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>{group}</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {cols.map(col => (
+                    <code key={col} style={{
+                      fontSize: '0.72rem',
+                      background: 'var(--bg-subtle)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-sm)',
+                      padding: '3px 8px',
+                      color: 'var(--amrita-maroon)',
+                      fontFamily: "'Courier New', monospace",
+                    }}>{col}</code>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: '12px', marginTop: '2px' }}>
+              Row 1 must be the header row. Column order does not matter.
+            </p>
+          </div>
         </div>
 
       </div>

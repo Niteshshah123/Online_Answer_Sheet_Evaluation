@@ -25,21 +25,14 @@ export default function FacultyLoginPage() {
   return (
     <AuthLayout
       roleTag="Faculty Portal"
-      tagline="Access your assigned answer sheets, evaluate student responses question by question, and submit final marks securely."
-      features={[
-        'View only your assigned sheets and question ranges',
-        'Side-by-side answer sheet and answer key viewer',
-        'Draft save and locked final submission',
-        'Request re-evaluation unlock from administration',
-      ]}
       hint="dr.a01@gmail.com  ·  dr.a01"
       links={[
         { href: '/login', label: 'Admin Login' },
         { href: '/student/login', label: 'Student Login' },
       ]}
     >
-      <h2 className="auth-form-title">Faculty Sign In</h2>
-      <p className="auth-form-sub">Enter your faculty credentials to access the evaluation workspace.</p>
+      <h2 className="auth-form-title">Sign In</h2>
+      <p className="auth-form-sub">Enter your credentials to access the faculty portal.</p>
 
       {error && <div className="alert alert-error">{error}</div>}
 

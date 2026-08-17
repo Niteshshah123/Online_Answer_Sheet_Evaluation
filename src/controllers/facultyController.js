@@ -9,6 +9,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const result = await require('../services/AuthService').login(email, password);
+    if (result.user?.role !== 'FACULTY') throw new AppError('Access denied', 403);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);

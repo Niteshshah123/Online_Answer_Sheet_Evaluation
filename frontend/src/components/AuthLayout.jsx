@@ -1,73 +1,75 @@
-const CheckIcon = () => (
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="20 6 9 17 4 12"/>
-  </svg>
-);
-
-export default function AuthLayout({ roleTag, headline, tagline, features, hint, links, children }) {
+export default function AuthLayout({ roleTag, hint, links, children }) {
   return (
     <div className="auth-root">
 
-      {/* ── Left branding panel ── */}
+      {/* Left panel */}
       <div className="auth-left">
-        <div className="auth-left-content">
-
-          <div className="auth-institution-badge">
-            <div className="auth-institution-badge-dot" />
-            <span className="auth-institution-badge-text">Amrita Vishwa Vidyapeetham</span>
+        <div className="auth-left-inner">
+          <div className="auth-left-logo">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+              <path d="M2 17l10 5 10-5"/>
+              <path d="M2 12l10 5 10-5"/>
+            </svg>
           </div>
+          <h1 className="auth-left-title">Amrita University</h1>
+          <p className="auth-left-sub">Examination Cell · Answer Sheet Evaluation</p>
 
-          <h1 className="auth-headline">
-            Online Answer Sheet<br />
-            <span className="auth-headline-accent">Valuation System</span>
-          </h1>
+          <div className="auth-left-divider" />
 
-          <p className="auth-tagline">{tagline}</p>
-
-          <div className="auth-divider-line" />
-
-          <div className="auth-features">
-            {features.map(f => (
-              <div key={f} className="auth-feature-row">
-                <div className="auth-feature-icon">
-                  <CheckIcon />
-                </div>
-                <span className="auth-feature-text">{f}</span>
-              </div>
-            ))}
-          </div>
+          <ul className="auth-left-points">
+            <li>
+              <span className="auth-left-point-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Secure role-based access
+            </li>
+            <li>
+              <span className="auth-left-point-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Automated answer sheet distribution
+            </li>
+            <li>
+              <span className="auth-left-point-icon">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+              Real-time evaluation tracking
+            </li>
+          </ul>
         </div>
 
-        <div className="auth-left-footer">
-          <div className="auth-left-footer-name">Amrita Vishwa Vidyapeetham</div>
-          <div className="auth-left-footer-sub">Department of Examinations &amp; Evaluation</div>
-        </div>
+        <p className="auth-left-copy">© {new Date().getFullYear()} Amrita Vishwa Vidyapeetham</p>
       </div>
 
-      {/* ── Right form panel ── */}
+      {/* Right panel */}
       <div className="auth-right">
-        <div className="auth-form-box">
+        <div className="auth-right-inner">
+          <div className="auth-right-header">
+            <span className="auth-role-tag">{roleTag}</span>
+          </div>
 
-          <div className="auth-role-tag">{roleTag}</div>
-
-          {children}
+          <div className="auth-right-body">
+            {children}
+          </div>
 
           {hint && (
-            <div className="auth-hint">
-              <p className="auth-hint-label">Demo Credentials</p>
-              <p className="auth-hint-value">{hint}</p>
+            <div className="auth-card-hint">
+              <span className="auth-hint-label">Demo</span>
+              <span className="auth-hint-value">{hint}</span>
             </div>
           )}
 
           {links?.length > 0 && (
-            <div className="auth-links">
-              {links.map(l => <a key={l.href} href={l.href}>{l.label}</a>)}
+            <div className="auth-footer-links">
+              {links.map((l, i) => (
+                <span key={l.href}>
+                  {i > 0 && <span className="auth-footer-sep">·</span>}
+                  <a href={l.href}>{l.label}</a>
+                </span>
+              ))}
             </div>
           )}
-
-          <p className="auth-footer">
-            © {new Date().getFullYear()} Amrita Vishwa Vidyapeetham · Examination Cell
-          </p>
         </div>
       </div>
 
