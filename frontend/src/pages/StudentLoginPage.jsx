@@ -25,50 +25,31 @@ export default function StudentLoginPage() {
   return (
     <AuthLayout
       roleTag="Student Portal"
-      tagline="View your evaluated answer sheets, check question-wise marks, and access your final converted score reports after results are published."
-      features={[
-        'Access results only after official publication',
-        'Question-wise marks breakdown per evaluator',
-        'Converted scale marks as per exam configuration',
-        'Secure login with institutional credentials',
-      ]}
       hint="student1@gmail.com  ·  studen"
       links={[
         { href: '/login', label: 'Admin Login' },
         { href: '/faculty/login', label: 'Faculty Login' },
       ]}
     >
-      <h2 className="auth-form-title">Student Sign In</h2>
-      <p className="auth-form-sub">Enter your student credentials to view your results and reports.</p>
+      <h2 className="auth-form-title">Sign In</h2>
+      <p className="auth-form-sub">Enter your credentials to view your results and reports.</p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label className="form-label">Email Address</label>
-          <input
-            className="form-input"
-            type="email"
-            placeholder="student@amrita.edu"
-            value={form.email}
-            onChange={e => setForm({ ...form, email: e.target.value })}
-            required
-            autoComplete="email"
-          />
+          <input className="form-input" type="email" placeholder="student@amrita.edu"
+            value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
+            required autoComplete="email" />
         </div>
         <div className="form-group">
           <label className="form-label">Password</label>
           <div className="input-wrapper">
-            <input
-              className="form-input"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Enter your password"
-              value={form.password}
+            <input className="form-input" type={showPassword ? 'text' : 'password'}
+              placeholder="Enter your password" value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })}
-              required
-              autoComplete="current-password"
-              style={{ paddingRight: '56px' }}
-            />
+              required autoComplete="current-password" style={{ paddingRight: '56px' }} />
             <button type="button" className="input-toggle" onClick={() => setShowPassword(p => !p)}>
               {showPassword ? 'Hide' : 'Show'}
             </button>
