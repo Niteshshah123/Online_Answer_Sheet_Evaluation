@@ -1,43 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
 const STATUS_BADGE = {
-  LOCKED: 'badge-red',
+  LOCKED: 'badge-green',
   UNLOCK_REQUESTED: 'badge-amber',
   DRAFT: 'badge-blue',
   PENDING: 'badge-gray',
 };
-
-const PdfControls = ({ label, zoom, onZoomIn, onZoomOut, onRotate }) => (
-  <div style={{
-    padding: '8px 14px',
-    background: 'var(--bg-subtle)',
-    borderBottom: '1px solid var(--border)',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    flexShrink: 0,
-  }}>
-    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-      {label}
-    </span>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      <button onClick={onZoomOut} style={ctrlBtn}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', minWidth: '36px', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{zoom}%</span>
-      <button onClick={onZoomIn} style={ctrlBtn}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-      </button>
-      <button onClick={onRotate} style={{ ...ctrlBtn, marginLeft: '4px' }} title="Rotate 90°">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-);
 
 const ctrlBtn = {
   width: '24px', height: '24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
@@ -45,20 +15,36 @@ const ctrlBtn = {
   color: 'var(--text-secondary)',
 };
 
+const PdfControls = ({ label, zoom, onZoomIn, onZoomOut, onRotate }) => (
+  <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+      <button onClick={onZoomOut} style={ctrlBtn}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', minWidth: '36px', textAlign: 'center' }}>{zoom}%</span>
+      <button onClick={onZoomIn} style={ctrlBtn}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button onClick={onRotate} style={{ ...ctrlBtn, marginLeft: '4px' }} title="Rotate 90°">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+  </div>
+);
+
 export default function FacultyEvaluationPage() {
   const { sheetId } = useParams();
   const navigate = useNavigate();
+  const containerRef = useRef(null);
 
-  const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
+  const [sheetPdfUrl, setSheetPdfUrl] = useState(null);
+  const [answerKeyUrl, setAnswerKeyUrl] = useState(null);
   const [targetScale, setTargetScale] = useState(30);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [remarkOpen, setRemarkOpen] = useState({});
 
   const [panelWidths, setPanelWidths] = useState({ left: 35, center: 35, right: 30 });
   const [isDragging, setIsDragging] = useState(null);
-
   const [sheetZoom, setSheetZoom] = useState(100);
   const [sheetRotate, setSheetRotate] = useState(0);
   const [keyZoom, setKeyZoom] = useState(100);
@@ -70,11 +56,11 @@ export default function FacultyEvaluationPage() {
       const res = await axios.get(`/api/faculty/evaluations?sheetId=${sheetId}`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
       });
-      const data = res.data.data || {};
-      setRows(data.evaluations || []);
-      setSheetPdfUrl(data.sheetPdfUrl || null);
-      setAnswerKeyUrl(data.answerKeyUrl || null);
-      if (data.convertedScale) setTargetScale(data.convertedScale);
+      const d = res.data.data || {};
+      setRows(d.evaluations || []);
+      setSheetPdfUrl(d.sheetPdfUrl || null);
+      setAnswerKeyUrl(d.answerKeyUrl || null);
+      if (d.convertedScale) setTargetScale(d.convertedScale);
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'Unable to load evaluation sheet.');
     } finally { setLoading(false); }
@@ -98,24 +84,16 @@ export default function FacultyEvaluationPage() {
     return window.location.port === '5173' ? `http://localhost:3000${url}` : url;
   };
 
-  const questionPaperUrl = useMemo(() => resolvePdfUrl(data?.questionPaperUrl), [data?.questionPaperUrl]);
-  const sheetPdfUrl = useMemo(() => resolvePdfUrl(data?.sheetPdfUrl), [data?.sheetPdfUrl]);
-  const answerKeyUrl = useMemo(() => resolvePdfUrl(data?.answerKeyUrl), [data?.answerKeyUrl]);
+  const sheetPreviewUrl = useMemo(() => resolvePdfUrl(sheetPdfUrl), [sheetPdfUrl]);
+  const answerKeyPreviewUrl = useMemo(() => resolvePdfUrl(answerKeyUrl), [answerKeyUrl]);
 
-  const hasAnswerKey = Boolean(answerKeyUrl);
-  const finalSubmittedToAdmin = Boolean(data?.finalSubmittedToAdmin);
+  const updateRow = (id, field, value) =>
+    setRows(cur => cur.map(r => r.evaluationId === id ? { ...r, [field]: value } : r));
 
-  const updateRow = (evaluationId, field, value) => {
-    setRows(cur => cur.map(r => r.evaluationId === evaluationId ? { ...r, [field]: value } : r));
-  };
+  const updateMax = (id, value) =>
+    setRows(cur => cur.map(r => r.evaluationId === id ? { ...r, maxMark: Math.max(1, Math.round(Number(value))) } : r));
 
-  const [remarkOpen, setRemarkOpen] = useState({});
   const toggleRemark = (id) => setRemarkOpen(p => ({ ...p, [id]: !p[id] }));
-
-  const updateMax = (evaluationId, value) => {
-    const v = Math.max(1, Math.round(Number(value)));
-    setRows(cur => cur.map(r => r.evaluationId === evaluationId ? { ...r, maxMark: v } : r));
-  };
 
   const validationErrors = useMemo(() => {
     const errors = {};
@@ -131,7 +109,9 @@ export default function FacultyEvaluationPage() {
   }, [rows]);
 
   const hasErrors = Object.keys(validationErrors).length > 0;
-  const allEvaluated = useMemo(() => rows.length > 0 && rows.every(r => r.marksObtained !== null && r.marksObtained !== undefined && r.marksObtained !== ''), [rows]);
+  const allEvaluated = useMemo(() =>
+    rows.length > 0 && rows.every(r => r.marksObtained !== null && r.marksObtained !== undefined && r.marksObtained !== ''),
+  [rows]);
 
   const totals = useMemo(() => {
     let rawObtained = 0, rawMax = 0;
@@ -140,8 +120,7 @@ export default function FacultyEvaluationPage() {
       if (r.marksObtained != null && r.marksObtained !== '') rawObtained += Number(r.marksObtained);
     });
     const scale = Number(targetScale) || 30;
-    const raw = rawMax > 0 ? (rawObtained / rawMax) * scale : 0;
-    return { rawObtained, rawMax, scale, convertedScore: Math.round(raw) };
+    return { rawObtained, rawMax, scale, convertedScore: Math.round(rawMax > 0 ? (rawObtained / rawMax) * scale : 0) };
   }, [rows, targetScale]);
 
   const handleDraft = async () => {
@@ -152,9 +131,9 @@ export default function FacultyEvaluationPage() {
         { updates: rows.map(r => ({ evaluationId: r.evaluationId, marksObtained: r.marksObtained, review: r.review })) },
         { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
       );
-      setMessage('Draft saved successfully.');
+      setMessage('Saved successfully.');
       await load();
-    } catch (err) { setErrorMessage(err.response?.data?.message || 'Unable to save draft.'); }
+    } catch (err) { setErrorMessage(err.response?.data?.message || 'Unable to save.'); }
   };
 
   const handleSubmit = async () => {
@@ -204,42 +183,25 @@ export default function FacultyEvaluationPage() {
   }, [isDragging, panelWidths]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 60px)', background: 'var(--bg-page)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)', background: 'var(--bg-page)' }}>
 
-      {/* Workspace header bar */}
-      <div style={{
-        padding: '0 20px', height: '48px', background: 'white',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexShrink: 0,
-      }}>
+      {/* Workspace header */}
+      <div style={{ padding: '0 20px', height: '48px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => navigate('/faculty/assignments')}
-            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
-            </svg>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/faculty/assignments')} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
             Back
           </button>
           <div style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
           <div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-              Evaluation Workspace
-            </span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '8px', fontFamily: 'monospace' }}>
-              {sheetId}
-            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Evaluation Workspace</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '8px', fontFamily: 'monospace' }}>{sheetId}</span>
           </div>
         </div>
-        <span className={`badge ${STATUS_BADGE[statusSummary] || 'badge-gray'}`}>
-          {statusSummary}
-        </span>
+        <span className={`badge ${STATUS_BADGE[statusSummary] || 'badge-gray'}`}>{statusSummary}</span>
       </div>
 
-      {/* Notification bar */}
+      {/* Notifications */}
       {message && (
         <div style={{ padding: '8px 20px', background: 'var(--success-bg)', color: 'var(--success)', borderBottom: '1px solid var(--success-border)', fontSize: '0.8rem', fontWeight: 500, flexShrink: 0 }}>
           {message}
@@ -251,30 +213,19 @@ export default function FacultyEvaluationPage() {
         </div>
       )}
 
-      {/* 3-panel layout */}
-      <div
-        ref={containerRef}
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `${panelWidths.left}% 5px ${panelWidths.center}% 5px ${panelWidths.right}%`,
-          flex: 1,
-          overflow: 'hidden',
-        }}
-      >
-        {/* Panel 1 — Student Answer Sheet */}
+      {/* 3-panel resizable layout */}
+      <div ref={containerRef} style={{ display: 'grid', gridTemplateColumns: `${panelWidths.left}% 5px ${panelWidths.center}% 5px ${panelWidths.right}%`, flex: 1, overflow: 'hidden' }}>
+
+        {/* Panel 1 — Answer Sheet */}
         <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-          <PdfControls
-            label="Student Answer Sheet"
-            zoom={sheetZoom}
+          <PdfControls label="Student Answer Sheet" zoom={sheetZoom}
             onZoomIn={() => setSheetZoom(z => Math.min(z + 15, 200))}
             onZoomOut={() => setSheetZoom(z => Math.max(z - 15, 50))}
             onRotate={() => setSheetRotate(r => (r + 90) % 360)}
           />
           <div style={{ flex: 1, overflow: 'auto', background: '#3d3d3d', display: 'flex', justifyContent: 'center', padding: '8px' }}>
             {sheetPreviewUrl ? (
-              <iframe
-                title="Student Answer Sheet"
-                src={sheetPreviewUrl}
+              <iframe title="Student Answer Sheet" src={sheetPreviewUrl}
                 style={{ width: `${sheetZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${sheetRotate}deg)`, transition: 'transform 0.2s' }}
               />
             ) : (
@@ -282,46 +233,24 @@ export default function FacultyEvaluationPage() {
                 No answer sheet PDF available
               </div>
             )}
-
-            {/* Tab 4 / Last Tab: Evaluation Panel */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('evaluationPanel')}
-              style={{
-                padding: '12px 18px',
-                fontSize: '0.88rem',
-                fontWeight: 600,
-                border: 'none',
-                borderBottom: activeTab === 'evaluationPanel' ? '3px solid #2563eb' : '3px solid transparent',
-                background: activeTab === 'evaluationPanel' ? '#ffffff' : 'transparent',
-                color: activeTab === 'evaluationPanel' ? '#2563eb' : '#64748b',
-                cursor: 'pointer'
-              }}
-            >
-              📝 Evaluation Panel
-            </button>
           </div>
+        </div>
 
         {/* Resizer 1 */}
-        <div
-          onMouseDown={() => setIsDragging('left')}
+        <div onMouseDown={() => setIsDragging('left')}
           style={{ cursor: 'col-resize', background: isDragging === 'left' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
         />
 
         {/* Panel 2 — Answer Key */}
         <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-          <PdfControls
-            label="Official Answer Key"
-            zoom={keyZoom}
+          <PdfControls label="Official Answer Key" zoom={keyZoom}
             onZoomIn={() => setKeyZoom(z => Math.min(z + 15, 200))}
             onZoomOut={() => setKeyZoom(z => Math.max(z - 15, 50))}
             onRotate={() => setKeyRotate(r => (r + 90) % 360)}
           />
           <div style={{ flex: 1, overflow: 'auto', background: '#3d3d3d', display: 'flex', justifyContent: 'center', padding: '8px' }}>
             {answerKeyPreviewUrl ? (
-              <iframe
-                title="Official Answer Key"
-                src={answerKeyPreviewUrl}
+              <iframe title="Official Answer Key" src={answerKeyPreviewUrl}
                 style={{ width: `${keyZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${keyRotate}deg)`, transition: 'transform 0.2s' }}
               />
             ) : (
@@ -333,22 +262,19 @@ export default function FacultyEvaluationPage() {
         </div>
 
         {/* Resizer 2 */}
-        <div
-          onMouseDown={() => setIsDragging('right')}
+        <div onMouseDown={() => setIsDragging('right')}
           style={{ cursor: 'col-resize', background: isDragging === 'right' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
         />
 
         {/* Panel 3 — Evaluation form */}
         <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
-          {/* Panel header */}
           <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Question Evaluation
             </span>
           </div>
 
-          {/* Scrollable form area */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '14px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
             {loading ? (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Loading questions...</p>
             ) : rows.length === 0 ? (
@@ -366,82 +292,38 @@ export default function FacultyEvaluationPage() {
                       borderLeft: `3px solid ${err ? 'var(--error)' : 'var(--amrita-maroon)'}`,
                       overflow: 'hidden',
                     }}>
-                      {/* Card header */}
-                      <div style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '7px 12px',
-                        background: err ? 'var(--error-bg)' : 'var(--bg-subtle)',
-                        borderBottom: '1px solid var(--border)',
-                      }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 12px', background: err ? 'var(--error-bg)' : 'var(--bg-subtle)', borderBottom: '1px solid var(--border)' }}>
                         <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)' }}>Q{row.questionNumber}</span>
-                        {/* Editable max marks */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>MAX</span>
-                          <input
-                            type="number"
-                            value={row.maxMark ?? ''}
-                            onChange={e => updateMax(row.evaluationId, e.target.value)}
-                            disabled={isLockedOrRequested}
-                            min={1} step="1"
-                            title="Edit max marks for this question"
-                            style={{
-                              width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700,
-                              border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-                              textAlign: 'center', outline: 'none',
-                              background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white',
-                              color: 'var(--text-primary)',
-                            }}
+                          <input type="number" value={row.maxMark ?? ''} onChange={e => updateMax(row.evaluationId, e.target.value)}
+                            disabled={isLockedOrRequested} min={1} step="1"
+                            style={{ width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white', color: 'var(--text-primary)' }}
                           />
                         </div>
                       </div>
-
-                      {/* Card body */}
                       <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {/* Marks row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <input
-                            className="form-input"
-                            type="number"
-                            value={row.marksObtained ?? ''}
+                          <input className="form-input" type="number" value={row.marksObtained ?? ''}
                             placeholder={`0 – ${row.maxMark ?? 'max'}`}
                             onChange={e => updateRow(row.evaluationId, 'marksObtained', e.target.value === '' ? null : Math.round(Number(e.target.value)))}
-                            disabled={isLockedOrRequested}
-                            min={0} max={row.maxMark ?? undefined} step="1"
+                            disabled={isLockedOrRequested} min={0} max={row.maxMark ?? undefined} step="1"
                             style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, background: isLockedOrRequested ? 'var(--bg-subtle)' : 'white', fontSize: '0.875rem', padding: '6px 10px' }}
                           />
                           {!isLockedOrRequested && (
-                            <button
-                              type="button"
-                              onClick={() => toggleRemark(row.evaluationId)}
-                              title={showRemark ? 'Hide remarks' : 'Add remark'}
-                              style={{
-                                flexShrink: 0, padding: '6px 10px', fontSize: '0.7rem', fontWeight: 600,
-                                border: `1px solid ${showRemark ? 'var(--amrita-maroon)' : 'var(--border)'}`,
-                                borderRadius: 'var(--radius-sm)', cursor: 'pointer',
-                                background: showRemark ? 'var(--accent-light)' : 'var(--bg-subtle)',
-                                color: showRemark ? 'var(--amrita-maroon)' : 'var(--text-muted)',
-                                whiteSpace: 'nowrap',
-                              }}
-                            >
+                            <button type="button" onClick={() => toggleRemark(row.evaluationId)}
+                              style={{ flexShrink: 0, padding: '6px 10px', fontSize: '0.7rem', fontWeight: 600, border: `1px solid ${showRemark ? 'var(--amrita-maroon)' : 'var(--border)'}`, borderRadius: 'var(--radius-sm)', cursor: 'pointer', background: showRemark ? 'var(--accent-light)' : 'var(--bg-subtle)', color: showRemark ? 'var(--amrita-maroon)' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                               {showRemark ? '− Note' : '+ Note'}
                             </button>
                           )}
                         </div>
                         {err && <span style={{ fontSize: '0.68rem', color: 'var(--error)' }}>{err}</span>}
-
-                        {/* Remarks — only shown when toggled */}
                         {showRemark && (
-                          <textarea
-                            className="form-input"
-                            value={row.review || ''}
-                            onChange={e => updateRow(row.evaluationId, 'review', e.target.value)}
-                            placeholder="Add a note for this question..."
-                            rows={2}
-                            autoFocus
+                          <textarea className="form-input" value={row.review || ''} onChange={e => updateRow(row.evaluationId, 'review', e.target.value)}
+                            placeholder="Add a note..." rows={2} autoFocus
                             style={{ resize: 'none', fontSize: '0.78rem', padding: '6px 10px' }}
                           />
                         )}
-                        {/* Show existing remark read-only when locked */}
                         {isLockedOrRequested && row.review && (
                           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>{row.review}</p>
                         )}
@@ -453,76 +335,39 @@ export default function FacultyEvaluationPage() {
             )}
           </div>
 
-          {/* Score summary + actions — fixed at bottom */}
           {rows.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: '14px', flexShrink: 0, background: 'white' }}>
-
-              {/* Score summary */}
-              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '12px' }}>
-
-                {/* Raw score row */}
+            <div style={{ borderTop: '1px solid var(--border)', padding: '12px', flexShrink: 0, background: 'white' }}>
+              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Raw Score</span>
-                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                    {totals.rawObtained} / {totals.rawMax}
-                  </span>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>{totals.rawObtained} / {totals.rawMax}</span>
                 </div>
-
-                {/* Scale input */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingBottom: '10px', borderBottom: '1px solid var(--border)', marginBottom: '10px' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Convert to</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <input
-                      type="number"
-                      value={targetScale}
-                      min={1}
+                    <input type="number" value={targetScale} min={1}
                       onChange={e => setTargetScale(Math.max(1, Math.round(Number(e.target.value))))}
-                      style={{
-                        width: '60px', padding: '5px 8px', fontSize: '0.82rem', fontWeight: 700,
-                        border: '1px solid var(--amrita-maroon)', borderRadius: 'var(--radius-sm)',
-                        textAlign: 'center', outline: 'none', color: 'var(--amrita-maroon)',
-                        background: 'var(--accent-light)',
-                      }}
+                      style={{ width: '60px', padding: '5px 8px', fontSize: '0.82rem', fontWeight: 700, border: '1px solid var(--amrita-maroon)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', color: 'var(--amrita-maroon)', background: 'var(--accent-light)' }}
                     />
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>marks</span>
                   </div>
                 </div>
-
-                {/* Converted score */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--amrita-maroon)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Converted Score</span>
-                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>
-                    {totals.convertedScore} / {totals.scale}
-                  </span>
+                  <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>{totals.convertedScore} / {totals.scale}</span>
                 </div>
               </div>
 
-              {/* Action buttons */}
               {!isLockedOrRequested ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  <button
-                    className="btn btn-primary btn-full"
-                    onClick={handleSubmit}
-                    disabled={hasErrors || !allEvaluated}
-                    style={{ opacity: hasErrors || !allEvaluated ? 0.5 : 1 }}
-                  >
-                    Submit &amp; Lock Evaluation
+                  <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={hasErrors || !allEvaluated} style={{ opacity: hasErrors || !allEvaluated ? 0.5 : 1 }}>
+                    Submit &amp; Lock
                   </button>
-                  {!allEvaluated && (
-                    <p style={{ fontSize: '0.72rem', color: 'var(--warning)', textAlign: 'center', margin: 0 }}>
-                      All questions must be marked before submitting.
-                    </p>
-                  )}
-                  <button className="btn btn-ghost btn-full" onClick={handleDraft} disabled={hasErrors}>
-                    Save
-                  </button>
+                  {!allEvaluated && <p style={{ fontSize: '0.72rem', color: 'var(--warning)', textAlign: 'center', margin: 0 }}>All questions must be marked first.</p>}
+                  <button className="btn btn-ghost btn-full" onClick={handleDraft} disabled={hasErrors}>Save</button>
                 </div>
               ) : statusSummary === 'LOCKED' ? (
-                <button
-                  className="btn btn-full"
-                  onClick={handleUnlock}
-                  style={{ background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}
-                >
+                <button className="btn btn-full" onClick={handleUnlock} style={{ background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}>
                   Request Unlock from Admin
                 </button>
               ) : (
