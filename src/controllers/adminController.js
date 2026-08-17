@@ -9,6 +9,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const result = await adminFacade.login(email, password);
+    if (result.user?.role !== 'ADMIN') throw new AppError('Access denied', 403);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -172,6 +173,40 @@ router.get('/reports', authMiddleware, async (req, res, next) => {
   try {
     const result = await adminFacade.getReports();
     res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/profile', authMiddleware, async (req, res, next) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) throw new AppError('Name is required', 400);
+    req.user.name = name.trim();
+    await req.user.save();
+    res.json({ success: true, data: { name: req.user.name } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/me', authMiddleware, async (req, res, next) => {
+  try {
+    res.json({ success: true, data: { name: req.user.name, email: req.user.email, role: req.user.role } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/change-password', authMiddleware, async (req, res, next) => {
+  try {
+    const bcrypt = require('bcryptjs');
+    const { oldPassword, newPassword } = req.body;
+    const valid = await bcrypt.compare(oldPassword, req.user.password);
+    if (!valid) throw new AppError('Current password is incorrect', 400);
+    req.user.password = await bcrypt.hash(newPassword, 10);
+    await req.user.save();
+    res.json({ success: true });
   } catch (error) {
     next(error);
   }

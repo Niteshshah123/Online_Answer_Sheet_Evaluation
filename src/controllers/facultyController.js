@@ -9,6 +9,7 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const result = await require('../services/AuthService').login(email, password);
+    if (result.user?.role !== 'FACULTY') throw new AppError('Access denied', 403);
     res.json({ success: true, data: result });
   } catch (error) {
     next(error);
@@ -140,6 +141,31 @@ router.post('/change-password', facultyAuthMiddleware, async (req, res, next) =>
     const { oldPassword, newPassword } = req.body;
     const result = await facultyService.changePassword(req.user.email, oldPassword, newPassword);
     res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put('/profile', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const AppError = require('../exceptions/AppError');
+    const { name } = req.body;
+    if (!name || !name.trim()) throw new AppError('Name is required', 400);
+    req.user.name = name.trim();
+    await req.user.save();
+    // also update faculty entity name
+    const FacultyRepository = require('../repositories/FacultyRepository');
+    const faculty = await FacultyRepository.findOne({ userId: req.user._id });
+    if (faculty) { faculty.name = req.user.name; await faculty.save(); }
+    res.json({ success: true, data: { name: req.user.name } });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/me', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    res.json({ success: true, data: { name: req.user.name, email: req.user.email, role: req.user.role } });
   } catch (error) {
     next(error);
   }

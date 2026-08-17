@@ -1,218 +1,251 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
+
+const STATUS_CONFIG = {
+  COMPLETED:        { dot: '#16a34a', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  LOCKED:           { dot: '#16a34a', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
+  IN_PROGRESS:      { dot: '#d97706', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  DRAFT:            { dot: '#d97706', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
+  PENDING:          { dot: '#6b7280', bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' },
+  UNLOCK_REQUESTED: { dot: '#2563eb', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+};
+
+const StatusBadge = ({ status }) => {
+  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      padding: '3px 9px', borderRadius: '4px', border: `1px solid ${cfg.border}`,
+      background: cfg.bg, color: cfg.color,
+      fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
+    }}>
+      <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: cfg.dot, flexShrink: 0 }} />
+      {status}
+    </span>
+  );
+};
+
+const StatCard = ({ label, value, sub, color }) => (
+  <div className="dash-stat-card" style={{ '--accent-color': color }}>
+    <div className="dash-stat-body">
+      <div className="dash-stat-value">{value}</div>
+      <div className="dash-stat-label">{label}</div>
+      {sub && <div className="dash-stat-sub">{sub}</div>}
+    </div>
+  </div>
+);
+
+const FilterSelect = ({ label, value, options, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>
+      {label}
+    </span>
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      style={{
+        padding: '4px 24px 4px 8px',
+        fontSize: '0.75rem',
+        fontWeight: 500,
+        border: `1px solid ${value !== 'ALL' ? 'var(--amrita-maroon)' : 'var(--border)'}`,
+        borderRadius: 'var(--radius-sm)',
+        background: value !== 'ALL' ? 'var(--accent-light)' : 'var(--bg-white)',
+        color: value !== 'ALL' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+        cursor: 'pointer',
+        outline: 'none',
+        appearance: 'none',
+        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 6px center',
+      }}
+    >
+      <option value="ALL">All</option>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
+);
 
 export default function FacultyDashboardPage() {
   const [dashboard, setDashboard] = useState(null);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [pwMessage, setPwMessage] = useState('');
-  const [pwError, setPwError] = useState('');
+  const [filters, setFilters] = useState({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' });
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const response = await axios.get('/api/faculty/dashboard', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
-        });
-        setDashboard(response.data.data);
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    load();
+    axios.get('/api/faculty/dashboard', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+    }).then(r => setDashboard(r.data.data)).catch(console.error);
   }, []);
 
-  if (!dashboard) return <p className="muted" style={{ padding: '20px' }}>Loading faculty dashboard...</p>;
+  // Derive unique filter options dynamically from data
+  const options = useMemo(() => {
+    const all = dashboard?.assignments || [];
+    const depts    = [...new Set(all.map(a => a.examName?.split(' / ')[0]?.trim()).filter(Boolean))];
+    const subjects = [...new Set(all.map(a => a.examName?.split(' / ')[1]?.trim()).filter(Boolean))];
+    // examContext = "3 A Mid_Term" → parts[1] = section
+    const sections = [...new Set(all.map(a => a.examContext?.split(' ')[1]?.trim()).filter(Boolean))];
+    const statuses = [...new Set(all.map(a => a.status).filter(Boolean))];
+    return { depts, subjects, sections, statuses };
+  }, [dashboard]);
+
+  const filtered = useMemo(() => {
+    const all = dashboard?.assignments || [];
+    return all.filter(a => {
+      const dept    = a.examName?.split(' / ')[0]?.trim();
+      const subject = a.examName?.split(' / ')[1]?.trim();
+      const section = a.examContext?.split(' ')[1]?.trim();
+      if (filters.dept    !== 'ALL' && dept    !== filters.dept)    return false;
+      if (filters.subject !== 'ALL' && subject !== filters.subject) return false;
+      if (filters.section !== 'ALL' && section !== filters.section) return false;
+      if (filters.status  !== 'ALL' && a.status !== filters.status) return false;
+      return true;
+    });
+  }, [dashboard, filters]);
+
+  const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: val }));
+  const hasActiveFilter = Object.values(filters).some(v => v !== 'ALL');
+
+  if (!dashboard) return (
+    <div className="dash-loading">
+      <div className="dash-loading-spinner" />
+      Loading dashboard...
+    </div>
+  );
+
+  const pct = dashboard.totalAssigned > 0
+    ? Math.round((dashboard.completed / dashboard.totalAssigned) * 100)
+    : 0;
 
   return (
-    <div>
-      {/* Header Banner */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div>
-          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.5rem', color: '#0f172a' }}>
-            Welcome, {dashboard.facultyName}
-          </h2>
-          <p className="muted" style={{ margin: 0 }}>
-            Track your assigned paper valuation progress and manage your evaluation queue.
-          </p>
-        </div>
-        <span
-          style={{
-            padding: '6px 14px',
-            borderRadius: '20px',
-            fontSize: '0.85rem',
-            fontWeight: 700,
-            background: '#e0f2fe',
-            color: '#0369a1',
-            border: '1px solid #bae6fd'
-          }}
-        >
-          {dashboard.totalAssigned} Sheets Assigned
-        </span>
+    <div className="dash-root">
+
+      {/* Stat cards */}
+      <div className="dash-stat-grid">
+        <StatCard label="Total Assigned" value={dashboard.totalAssigned} sub="Answer sheets" color="#1E3A5F" />
+        <StatCard label="Completed" value={dashboard.completed} sub="Locked & submitted" color="#16a34a" />
+        <StatCard label="Pending" value={dashboard.pending} sub="Awaiting evaluation" color="#d97706" />
+        <StatCard label="Completion" value={`${pct}%`} sub="Overall progress" color="#7c3aed" />
       </div>
 
-      {/* Metrics Cards Grid */}
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
-        <div className="metric" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)' }}>
-          <h3 style={{ color: '#94a3b8' }}>Total Assigned</h3>
-          <p style={{ color: '#ffffff', fontSize: '2.2rem', margin: '4px 0 0 0' }}>{dashboard.totalAssigned}</p>
+      {/* Progress banner */}
+      <div className="dash-progress-banner">
+        <div className="dash-progress-banner-left">
+          <span className="dash-progress-banner-pct">{pct}%</span>
+          <span className="dash-progress-banner-label">Evaluation Progress</span>
         </div>
-        <div className="metric" style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)' }}>
-          <h3 style={{ color: '#bbf7d0' }}>Completed & Locked</h3>
-          <p style={{ color: '#ffffff', fontSize: '2.2rem', margin: '4px 0 0 0' }}>{dashboard.completed}</p>
+        <div className="dash-progress-banner-bar">
+          <div className="dash-progress-banner-fill" style={{ width: `${pct}%` }} />
         </div>
-        <div className="metric" style={{ background: 'linear-gradient(135deg, #d97706, #b45309)' }}>
-          <h3 style={{ color: '#fef3c7' }}>Remaining to Check</h3>
-          <p style={{ color: '#ffffff', fontSize: '2.2rem', margin: '4px 0 0 0' }}>{dashboard.pending}</p>
+        <div className="dash-progress-banner-counts">
+          <span style={{ color: '#16a34a' }}>✓ {dashboard.completed} done</span>
+          <span style={{ color: 'var(--text-muted)' }}>· {dashboard.pending} left</span>
         </div>
       </div>
 
-      {/* Assigned Students Valuation Queue */}
-      <div className="card" style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-          <h3 style={{ margin: 0 }}>Valuation Progress Overview</h3>
-          <span className="muted" style={{ fontSize: '0.85rem' }}>Assigned answer sheets across courses</span>
+      {/* Assignments table */}
+      <div className="card">
+        <div className="card-header">
+          <h2>Evaluation Overview</h2>
+          <span className="badge badge-gray">{filtered.length} of {dashboard.assignments?.length ?? 0} records</span>
         </div>
 
-        <table className="table" style={{ width: '100%' }}>
-          <thead>
-            <tr>
-              <th>Student Name & Reg No.</th>
-              <th>Examination Context</th>
-              <th>Assigned Qs</th>
-              <th>Status</th>
-              <th>Detailed Breakdown</th>
-            </tr>
-          </thead>
-          <tbody>
-            {dashboard.assignments?.map((item) => (
-              <tr key={`${item.sheetId}-${item.questionRange}`}>
-                <td>
-                  <strong>{item.studentName}</strong>
-                  <br />
-                  <code style={{ fontSize: '0.78rem', color: '#64748b' }}>{item.registrationNumber}</code>
-                </td>
-                <td>
-                  <span style={{ fontWeight: 600, color: '#1e293b' }}>{item.examName}</span>
-                  <br />
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.examContext}</span>
-                </td>
-                <td>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      background: '#f1f5f9',
-                      borderRadius: '6px',
-                      fontWeight: 600,
-                      fontSize: '0.82rem'
-                    }}
-                  >
-                    {item.questionRange}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: '12px',
-                      fontSize: '0.78rem',
-                      fontWeight: 700,
-                      background:
-                        item.status === 'LOCKED'
-                          ? '#dcfce7'
-                          : item.status === 'DRAFT'
-                            ? '#fffbe6'
-                            : '#f1f5f9',
-                      color:
-                        item.status === 'LOCKED'
-                          ? '#15803d'
-                          : item.status === 'DRAFT'
-                            ? '#b45309'
-                            : '#475569',
-                      border: `1px solid ${
-                        item.status === 'LOCKED'
-                          ? '#86efac'
-                          : item.status === 'DRAFT'
-                            ? '#fde68a'
-                            : '#cbd5e1'
-                      }`
-                    }}
-                  >
-                    {item.status}
-                  </span>
-                </td>
-                <td style={{ fontSize: '0.8rem', color: '#475569' }}>
-                  {Object.entries(item.evaluationSummary || {})
-                    .map(([status, count]) => `${status}: ${count}`)
-                    .join(' | ')}
-                </td>
+        {/* Filter bar */}
+        {dashboard.assignments?.length > 0 && (
+          <div style={{
+            padding: '10px 16px',
+            borderBottom: '1px solid var(--border)',
+            background: 'var(--bg-subtle)',
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '10px',
+            alignItems: 'center',
+          }}>
+            <FilterSelect
+              label="Dept"
+              value={filters.dept}
+              options={options.depts}
+              onChange={v => setFilter('dept', v)}
+            />
+            <FilterSelect
+              label="Subject"
+              value={filters.subject}
+              options={options.subjects}
+              onChange={v => setFilter('subject', v)}
+            />
+            <FilterSelect
+              label="Section"
+              value={filters.section}
+              options={options.sections}
+              onChange={v => setFilter('section', v)}
+            />
+            <FilterSelect
+              label="Status"
+              value={filters.status}
+              options={options.statuses}
+              onChange={v => setFilter('status', v)}
+            />
+            {hasActiveFilter && (
+              <button
+                onClick={() => setFilters({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' })}
+                style={{
+                  padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600,
+                  border: '1px solid var(--error-border)', borderRadius: 'var(--radius-sm)',
+                  background: 'var(--error-bg)', color: 'var(--error)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: '4px',
+                }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
+        {!filtered.length ? (
+          <div className="empty-state">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>{hasActiveFilter ? 'No records match the selected filters.' : 'No assignments found.'}</p>
+          </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Examination</th>
+                <th>Questions</th>
+                <th>Status</th>
+                <th>Breakdown</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Security Settings Card */}
-      <div className="card" style={{ maxWidth: '480px' }}>
-        <h3 style={{ margin: '0 0 12px 0' }}>Security Settings</h3>
-        <p className="muted" style={{ fontSize: '0.85rem', marginBottom: '14px' }}>
-          Update your faculty portal password.
-        </p>
-
-        {pwMessage && (
-          <div style={{ padding: '8px 12px', background: '#f0fdf4', color: '#166534', borderRadius: '6px', marginBottom: '12px', fontSize: '0.85rem' }}>
-            ✓ {pwMessage}
-          </div>
+            </thead>
+            <tbody>
+              {filtered.map((item) => (
+                <tr key={`${item.sheetId}-${item.questionRange}`}>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
+                      <div>
+                        <strong>{item.studentName}</strong>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '1px' }}>
+                          {item.registrationNumber}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <strong>{item.examName}</strong>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.examContext}</div>
+                  </td>
+                  <td><span className="badge badge-maroon">{item.questionRange}</span></td>
+                  <td><StatusBadge status={item.status} /></td>
+                  <td style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    {Object.entries(item.evaluationSummary || {}).map(([s, c]) => `${s}: ${c}`).join(' · ')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-        {pwError && (
-          <div style={{ padding: '8px 12px', background: '#fef2f2', color: '#991b1b', borderRadius: '6px', marginBottom: '12px', fontSize: '0.85rem' }}>
-            ⚠ {pwError}
-          </div>
-        )}
-
-        <div className="form-group" style={{ marginBottom: '10px' }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>Current Password</label>
-          <input
-            type="password"
-            value={oldPassword}
-            onChange={(e) => setOldPassword(e.target.value)}
-            placeholder="Enter current password"
-          />
-        </div>
-        <div className="form-group" style={{ marginBottom: '14px' }}>
-          <label style={{ fontSize: '0.85rem', fontWeight: 600 }}>New Password</label>
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Enter new password"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              setPwMessage('');
-              setPwError('');
-              await axios.post(
-                '/api/faculty/change-password',
-                { oldPassword, newPassword },
-                { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
-              );
-              setPwMessage('Password changed successfully');
-              setOldPassword('');
-              setNewPassword('');
-            } catch (err) {
-              setPwError(err.response?.data?.message || 'Failed to change password');
-            }
-          }}
-          style={{ width: '100%', padding: '10px' }}
-        >
-          Update Password
-        </button>
       </div>
     </div>
   );
 }
-
