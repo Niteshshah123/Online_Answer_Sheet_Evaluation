@@ -25,7 +25,7 @@ export default function ExamsPage() {
     fetchExams();
   }, []);
 
-  const handleTogglePublish = async (examId, currentStatus) => {
+  const handleTogglePublish = async (examId) => {
     try {
       setMessage('');
       setErrorMessage('');
@@ -42,12 +42,29 @@ export default function ExamsPage() {
     }
   };
 
+  const handleDeleteExam = async (examId, examContext) => {
+    if (!window.confirm(`Are you sure you want to delete exam "${examContext}"? This will delete all associated student answer sheets, question allocations, and evaluations.`)) {
+      return;
+    }
+    try {
+      setMessage('');
+      setErrorMessage('');
+      await axios.delete(`/api/admin/exams/${examId}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setMessage('Exam and associated data deleted successfully.');
+      await fetchExams();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to delete exam');
+    }
+  };
+
   return (
     <div>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2>Exams & Result Publishing</h2>
-          <p className="muted">Manage examination configurations and control when students can access evaluated results.</p>
+          <h2>Exams & Data Management</h2>
+          <p className="muted">Manage examination configurations, deletion of obsolete records, and result publishing controls.</p>
         </div>
       </div>
 
@@ -72,6 +89,7 @@ export default function ExamsPage() {
           <div style={{ display: 'grid', gap: '16px', marginTop: '12px' }}>
             {exams.map((exam) => {
               const totalRawMarks = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);
+              const examContext = `${exam.course} - ${exam.subject} (${exam.semester} ${exam.section} ${exam.examType})`;
               return (
                 <div
                   key={exam._id}
@@ -89,7 +107,7 @@ export default function ExamsPage() {
                 >
                   <div>
                     <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: '#0f172a' }}>
-                      {exam.course} - {exam.subject} ({exam.semester} {exam.section})
+                      {examContext}
                     </h4>
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#475569' }}>
                       <span><strong>Type:</strong> {exam.examType}</span>
@@ -105,7 +123,7 @@ export default function ExamsPage() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span
                       style={{
                         padding: '4px 12px',
@@ -122,16 +140,30 @@ export default function ExamsPage() {
 
                     <button
                       type="button"
-                      onClick={() => handleTogglePublish(exam._id, exam.isPublished)}
+                      onClick={() => handleTogglePublish(exam._id)}
                       style={{
-                        padding: '8px 16px',
-                        fontSize: '0.85rem',
+                        padding: '8px 14px',
+                        fontSize: '0.82rem',
                         fontWeight: 600,
-                        background: exam.isPublished ? '#dc2626' : '#16a34a',
+                        background: exam.isPublished ? '#d97706' : '#16a34a',
                         color: '#ffffff'
                       }}
                     >
-                      {exam.isPublished ? 'Unpublish Results' : 'Publish Results'}
+                      {exam.isPublished ? 'Unpublish' : 'Publish'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExam(exam._id, examContext)}
+                      style={{
+                        padding: '8px 14px',
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        background: '#dc2626',
+                        color: '#ffffff'
+                      }}
+                    >
+                      Delete Exam 🗑
                     </button>
                   </div>
                 </div>

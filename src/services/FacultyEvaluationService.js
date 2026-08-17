@@ -6,6 +6,7 @@ const AnswerSheetRepository = require('../repositories/AnswerSheetRepository');
 const ExamRepository = require('../repositories/ExamRepository');
 const StudentRepository = require('../repositories/StudentRepository');
 const AuditLogRepository = require('../repositories/AuditLogRepository');
+const aumsExportAdapter = require('../adapters/excel/AUMSExportAdapter');
 
 class FacultyEvaluationService {
   async getFacultySheetEvaluations(facultyEmail, sheetId) {
@@ -15,24 +16,43 @@ class FacultyEvaluationService {
     const sheet = await AnswerSheetRepository.findById(sheetId);
     if (!sheet) throw new AppError('Answer sheet not found', 404);
 
-    const allocations = await QuestionAllocationRepository.findByFacultyId(faculty._id);
-    const relevant = allocations.filter((allocation) => allocation.examId.toString() === sheet.examId.toString());
-
-    if (!relevant.length) {
-      return { sheetId: sheet._id, sheetPdfUrl: sheet.pdfUrl || '', answerKeyUrl: '', evaluations: [], convertedScale: 30 };
-    }
-
-    const evaluations = await QuestionEvaluationRepository.findAll({
-      sheetId,
-      facultyId: faculty._id
-    });
-
     const exam = await ExamRepository.findById(sheet.examId);
     const answerKeyUrl = exam ? (exam.answerKeyUrl || '') : '';
+    const questionPaperUrl = exam ? (exam.questionPaperUrl || '') : '';
     const convertedScale = exam?.convertedScale || 30;
+    const finalSubmittedToAdmin = Boolean(exam?.finalSubmittedToAdmin);
+    const isPublished = Boolean(exam?.isPublished);
 
-    const filtered = evaluations
-      .filter((item) => relevant.some((allocation) => item.questionNumber >= allocation.fromQuestion && item.questionNumber <= allocation.toQuestion))
+    // Fetch ALL evaluations for this sheet (to show co-evaluators' scores & live running total)
+    const allEvaluations = await QuestionEvaluationRepository.findAll({ sheetId });
+
+    // Filter evaluations assigned specifically to the requesting faculty
+    const myEvaluations = allEvaluations.filter((ev) => ev.facultyId.toString() === faculty._id.toString());
+
+    // Build co-evaluators information
+    const coEvaluatorsMap = new Map();
+    for (const ev of allEvaluations) {
+      if (ev.facultyId.toString() !== faculty._id.toString()) {
+        const facId = ev.facultyId.toString();
+        if (!coEvaluatorsMap.has(facId)) {
+          const coFac = await FacultyRepository.findById(ev.facultyId);
+          coEvaluatorsMap.set(facId, {
+            name: coFac?.name || 'Co-Evaluator',
+            evaluations: []
+          });
+        }
+        coEvaluatorsMap.get(facId).evaluations.push({
+          questionNumber: ev.questionNumber,
+          marksObtained: ev.marksObtained,
+          status: ev.status,
+          maxMark: exam?.questionWeightage?.[ev.questionNumber - 1] ?? null
+        });
+      }
+    }
+
+    const coEvaluators = Array.from(coEvaluatorsMap.values());
+
+    const formattedMyEvals = myEvaluations
       .map((item) => ({
         evaluationId: item._id,
         questionNumber: item.questionNumber,
@@ -46,9 +66,19 @@ class FacultyEvaluationService {
     return {
       sheetId: sheet._id,
       sheetPdfUrl: sheet.pdfUrl || '',
+      questionPaperUrl,
       answerKeyUrl,
       convertedScale,
-      evaluations: filtered
+      finalSubmittedToAdmin,
+      isPublished,
+      evaluations: formattedMyEvals,
+      allEvaluations: allEvaluations.map((item) => ({
+        questionNumber: item.questionNumber,
+        marksObtained: item.marksObtained,
+        maxMark: exam?.questionWeightage?.[item.questionNumber - 1] ?? null,
+        facultyId: item.facultyId
+      })),
+      coEvaluators
     };
   }
 
@@ -66,11 +96,15 @@ class FacultyEvaluationService {
       if (!evaluation) continue;
       if (evaluation.facultyId.toString() !== faculty._id.toString()) continue;
       if (evaluation.sheetId.toString() !== sheetId) continue;
-      if (evaluation.status === 'LOCKED' || evaluation.status === 'UNLOCK_REQUESTED') continue;
+      if (exam?.finalSubmittedToAdmin) {
+        throw new AppError('Evaluation is permanently locked post Final Submission to Admin.', 403);
+      }
 
       if (update.marksObtained !== undefined && update.marksObtained !== null && update.marksObtained !== '') {
         const val = Number(update.marksObtained);
-        if (Number.isNaN(val)) throw new AppError(`Invalid numeric mark for Q${evaluation.questionNumber}`, 400);
+        if (Number.isNaN(val) || !Number.isInteger(val)) {
+          throw new AppError(`Marks for Question ${evaluation.questionNumber} must be a whole integer`, 400);
+        }
         if (val < 0) throw new AppError(`Marks for Question ${evaluation.questionNumber} cannot be negative`, 400);
 
         const maxMark = exam?.questionWeightage?.[evaluation.questionNumber - 1];
@@ -100,6 +134,9 @@ class FacultyEvaluationService {
     if (!sheet) throw new AppError('Answer sheet not found', 404);
 
     const exam = await ExamRepository.findById(sheet.examId);
+    if (exam?.finalSubmittedToAdmin) {
+      throw new AppError('Evaluation is permanently locked post Final Submission to Admin.', 403);
+    }
 
     // Verify that ALL assigned evaluations for this faculty & sheet have a valid mark
     const assignedEvaluations = await QuestionEvaluationRepository.findAll({
@@ -127,10 +164,11 @@ class FacultyEvaluationService {
       if (!evaluation) continue;
       if (evaluation.facultyId.toString() !== faculty._id.toString()) continue;
       if (evaluation.sheetId.toString() !== sheetId) continue;
-      if (evaluation.status === 'LOCKED' || evaluation.status === 'UNLOCK_REQUESTED') continue;
 
       const val = Number(update.marksObtained);
-      if (Number.isNaN(val)) throw new AppError(`Invalid numeric mark for Q${evaluation.questionNumber}`, 400);
+      if (Number.isNaN(val) || !Number.isInteger(val)) {
+        throw new AppError(`Marks for Question ${evaluation.questionNumber} must be a whole integer`, 400);
+      }
       if (val < 0) throw new AppError(`Marks for Question ${evaluation.questionNumber} cannot be negative`, 400);
 
       const maxMark = exam?.questionWeightage?.[evaluation.questionNumber - 1];
@@ -140,12 +178,106 @@ class FacultyEvaluationService {
       evaluation.marksObtained = val;
       evaluation.review = update.review ?? evaluation.review;
       evaluation.status = 'LOCKED';
+      evaluation.evaluatorSubmitted = true;
       evaluation.updatedAt = new Date();
       await evaluation.save();
     }
 
-    await AuditLogRepository.create({ action: 'FACULTY_SUBMIT', performedBy: facultyEmail, details: `Submitted sheet ${sheetId}` });
+    await AuditLogRepository.create({ action: 'FACULTY_SUBMIT', performedBy: facultyEmail, details: `Submitted section evaluations for sheet ${sheetId}` });
     return { success: true };
+  }
+
+  async finalSubmitToAdmin(facultyEmail, examId) {
+    const faculty = await FacultyRepository.findOne({ email: facultyEmail });
+    if (!faculty) throw new AppError('Faculty not found', 404);
+
+    const exam = await ExamRepository.findById(examId);
+    if (!exam) throw new AppError('Exam not found', 404);
+
+    // Verify all answer sheets for this exam have 100% completed question evaluations
+    const answerSheets = await AnswerSheetRepository.findAll({ examId });
+    for (const sheet of answerSheets) {
+      const evals = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
+      const pendingCount = evals.filter((e) => e.marksObtained === null || e.marksObtained === undefined).length;
+      if (pendingCount > 0) {
+        throw new AppError(`Cannot perform Final Submit: Student answer sheet ${sheet._id} still has ${pendingCount} un-evaluated question(s).`, 400);
+      }
+    }
+
+    exam.finalSubmittedToAdmin = true;
+    await exam.save();
+
+    await AuditLogRepository.create({
+      action: 'FACULTY_FINAL_SUBMIT_TO_ADMIN',
+      performedBy: facultyEmail,
+      details: `Final submitted exam ${exam.course} / ${exam.subject} (${exam.semester} ${exam.section} ${exam.examType}) to Admin`
+    });
+
+    return { success: true, message: 'Final submission completed. Exam marks are now permanently locked.' };
+  }
+
+  async toggleFacultyPublish(facultyEmail, examId) {
+    const faculty = await FacultyRepository.findOne({ email: facultyEmail });
+    if (!faculty) throw new AppError('Faculty not found', 404);
+
+    const exam = await ExamRepository.findById(examId);
+    if (!exam) throw new AppError('Exam not found', 404);
+
+    exam.isPublished = !exam.isPublished;
+    await exam.save();
+
+    await AuditLogRepository.create({
+      action: exam.isPublished ? 'FACULTY_PUBLISH_RESULTS' : 'FACULTY_UNPUBLISH_RESULTS',
+      performedBy: facultyEmail,
+      details: `${exam.isPublished ? 'Published' : 'Unpublished'} results for ${exam.course} / ${exam.subject}`
+    });
+
+    return { success: true, isPublished: exam.isPublished };
+  }
+
+  async generateAUMSExport(facultyEmail, examId) {
+    const faculty = await FacultyRepository.findOne({ email: facultyEmail });
+    if (!faculty) throw new AppError('Faculty not found', 404);
+
+    const exam = await ExamRepository.findById(examId);
+    if (!exam) throw new AppError('Exam not found', 404);
+
+    const answerSheets = await AnswerSheetRepository.findAll({ examId: exam._id });
+    const fullRawMarks = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);
+    const convertedScale = exam.convertedScale || 30;
+
+    const rows = [];
+    for (const sheet of answerSheets) {
+      const student = await StudentRepository.findById(sheet.studentId);
+      const evals = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
+
+      let rawScore = 0;
+      let isComplete = true;
+      evals.forEach((e) => {
+        if (e.marksObtained !== null && e.marksObtained !== undefined) {
+          rawScore += Number(e.marksObtained);
+        } else {
+          isComplete = false;
+        }
+      });
+
+      const convertedMarks = fullRawMarks > 0 ? Math.round((rawScore / fullRawMarks) * convertedScale) : 0;
+
+      rows.push({
+        registrationNumber: student?.registrationNumber || 'N/A',
+        studentName: student?.name || 'Unknown Student',
+        course: exam.course,
+        subject: exam.subject,
+        semester: exam.semester,
+        section: exam.section,
+        examType: exam.examType,
+        rawMarks: rawScore,
+        convertedMarks,
+        status: isComplete ? 'EVALUATED' : 'PARTIAL'
+      });
+    }
+
+    return aumsExportAdapter.generateAUMSWorkbook(rows);
   }
 
   async requestUnlock(facultyEmail, sheetId) {
@@ -192,11 +324,14 @@ class FacultyEvaluationService {
         const student = await StudentRepository.findById(sheet.studentId);
         items.push({
           sheetId: sheet._id,
+          examId: exam._id,
           studentName: student?.name || 'Unknown',
           registrationNumber: student?.registrationNumber || 'N/A',
           examName: exam ? `${exam.course} / ${exam.subject}` : 'Unknown',
           questionRange: min && max ? `Q${min} to Q${max}` : 'N/A',
-          status: statuses.includes('LOCKED') ? 'LOCKED' : statuses.includes('UNLOCK_REQUESTED') ? 'UNLOCK_REQUESTED' : statuses.includes('DRAFT') ? 'DRAFT' : 'PENDING'
+          status: statuses.includes('LOCKED') ? 'LOCKED' : statuses.includes('UNLOCK_REQUESTED') ? 'UNLOCK_REQUESTED' : statuses.includes('DRAFT') ? 'DRAFT' : 'PENDING',
+          finalSubmittedToAdmin: Boolean(exam?.finalSubmittedToAdmin),
+          isPublished: Boolean(exam?.isPublished)
         });
       }
     }
@@ -206,4 +341,5 @@ class FacultyEvaluationService {
 }
 
 module.exports = new FacultyEvaluationService();
+
 

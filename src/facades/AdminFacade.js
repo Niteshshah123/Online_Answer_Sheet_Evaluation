@@ -169,10 +169,65 @@ class AdminFacade {
   async deleteTeacher(id) {
     const user = await User.findById(id);
     if (!user) throw new Error('User not found');
-    const faculty = await FacultyRepository.findOne({ userId: user._id });
-    if (faculty) await FacultyRepository.deleteById(faculty._id);
     await User.findByIdAndDelete(id);
+    const faculty = await FacultyRepository.findOne({ userId: id });
+    if (faculty) {
+      await FacultyRepository.delete(faculty._id);
+    }
     return { success: true };
+  }
+
+  async deleteExam(examId, performedBy) {
+    const Exam = require('../models/entities/examModel');
+    const AnswerSheet = require('../models/entities/answerSheetModel');
+    const QuestionAllocation = require('../models/entities/questionAllocationModel');
+    const QuestionEvaluation = require('../models/entities/questionEvaluationModel');
+    const FacultyMapping = require('../models/entities/facultyMappingModel');
+
+    const exam = await Exam.findById(examId);
+    if (!exam) throw new Error('Exam not found');
+
+    const sheets = await AnswerSheet.find({ examId });
+    for (const sheet of sheets) {
+      await QuestionEvaluation.deleteMany({ sheetId: sheet._id });
+    }
+    await AnswerSheet.deleteMany({ examId });
+    await QuestionAllocation.deleteMany({ examId });
+    await FacultyMapping.deleteMany({
+      course: exam.course,
+      subject: exam.subject,
+      semester: exam.semester,
+      section: exam.section,
+      examType: exam.examType
+    });
+    await Exam.findByIdAndDelete(examId);
+
+    await AuditLogRepository.create({
+      action: 'ADMIN_DELETE_EXAM',
+      performedBy,
+      details: `Deleted exam ${exam.course} / ${exam.subject} (${exam.semester} ${exam.section} ${exam.examType})`
+    });
+
+    return { success: true, message: 'Exam deleted successfully' };
+  }
+
+  async deleteAnswerSheet(sheetId, performedBy) {
+    const AnswerSheet = require('../models/entities/answerSheetModel');
+    const QuestionEvaluation = require('../models/entities/questionEvaluationModel');
+
+    const sheet = await AnswerSheet.findById(sheetId);
+    if (!sheet) throw new Error('Answer sheet not found');
+
+    await QuestionEvaluation.deleteMany({ sheetId: sheet._id });
+    await AnswerSheet.findByIdAndDelete(sheetId);
+
+    await AuditLogRepository.create({
+      action: 'ADMIN_DELETE_ANSWER_SHEET',
+      performedBy,
+      details: `Deleted student answer sheet ${sheetId}`
+    });
+
+    return { success: true, message: 'Answer sheet deleted successfully' };
   }
 }
 
