@@ -5,7 +5,7 @@ export default function ExamsPage() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
+  const [error, setError] = useState('');
 
   const fetchExams = async () => {
     try {
@@ -15,129 +15,102 @@ export default function ExamsPage() {
       });
       setExams(res.data.data || []);
     } catch (err) {
-      setErrorMessage(err.response?.data?.message || 'Failed to load exams list');
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.message || 'Failed to load examinations.');
+    } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    fetchExams();
-  }, []);
+  useEffect(() => { fetchExams(); }, []);
 
-  const handleTogglePublish = async (examId, currentStatus) => {
+  const handleToggle = async (examId, isPublished) => {
+    setMessage(''); setError('');
     try {
-      setMessage('');
-      setErrorMessage('');
-      const res = await axios.post(
-        `/api/admin/exams/${examId}/publish`,
-        {},
-        { headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` } }
-      );
-      const isPublished = res.data.data?.isPublished;
-      setMessage(isPublished ? 'Results published! Students can now view their marks.' : 'Results unpublished. Student access restricted.');
+      const res = await axios.post(`/api/admin/exams/${examId}/publish`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('adminToken')}` }
+      });
+      setMessage(res.data.data?.isPublished
+        ? 'Results published successfully. Students can now view their marks.'
+        : 'Results unpublished. Student access has been restricted.');
       await fetchExams();
     } catch (err) {
-      setErrorMessage(err.response?.data?.message || 'Failed to update publishing status');
+      setError(err.response?.data?.message || 'Failed to update publishing status.');
     }
   };
 
   return (
     <div>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2>Exams & Result Publishing</h2>
-          <p className="muted">Manage examination configurations and control when students can access evaluated results.</p>
-        </div>
+      <div className="page-header">
+        <h1>Exams &amp; Result Publishing</h1>
+        <p>Manage examination configurations and control when students can access evaluated results.</p>
       </div>
 
-      {message && (
-        <div style={{ marginTop: '12px', padding: '10px 14px', background: '#f0fdf4', color: '#166534', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-          ✓ {message}
-        </div>
-      )}
-      {errorMessage && (
-        <div style={{ marginTop: '12px', padding: '10px 14px', background: '#fef2f2', color: '#991b1b', borderRadius: '8px', border: '1px solid #fecaca' }}>
-          ⚠ {errorMessage}
-        </div>
-      )}
+      {message && <div className="alert alert-success">{message}</div>}
+      {error && <div className="alert alert-error">{error}</div>}
 
-      <div className="card" style={{ marginTop: '16px' }}>
-        <h3>Configured Examinations</h3>
+      <div className="card">
+        <div className="card-header">
+          <h2>Configured Examinations</h2>
+          <span className="badge badge-gray">{exams.length} records</span>
+        </div>
+
         {loading ? (
-          <p className="muted">Loading exams...</p>
+          <div className="empty-state"><p>Loading examinations...</p></div>
         ) : exams.length === 0 ? (
-          <p className="muted">No examination records found. Import an Excel sheet or seed the database to populate exams.</p>
-        ) : (
-          <div style={{ display: 'grid', gap: '16px', marginTop: '12px' }}>
-            {exams.map((exam) => {
-              const totalRawMarks = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);
-              return (
-                <div
-                  key={exam._id}
-                  style={{
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '10px',
-                    padding: '16px',
-                    background: '#f8fafc',
-                    display: 'flex',
-                    justify: 'space-between',
-                    alignItems: 'center',
-                    flexWrap: 'wrap',
-                    gap: '16px'
-                  }}
-                >
-                  <div>
-                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1.05rem', color: '#0f172a' }}>
-                      {exam.course} - {exam.subject} ({exam.semester} {exam.section})
-                    </h4>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', fontSize: '0.85rem', color: '#475569' }}>
-                      <span><strong>Type:</strong> {exam.examType}</span>
-                      <span>•</span>
-                      <span><strong>Questions:</strong> {(exam.questionWeightage || []).length} Qs</span>
-                      <span>•</span>
-                      <span><strong>Raw Total:</strong> {totalRawMarks} Marks</span>
-                      <span>•</span>
-                      <span><strong>Target Scale:</strong> {exam.convertedScale || 30} Marks</span>
-                    </div>
-                    <div style={{ marginTop: '6px', fontSize: '0.8rem', color: '#64748b' }}>
-                      Question Weightages: <code>[{(exam.questionWeightage || []).join(', ')}]</code>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <span
-                      style={{
-                        padding: '4px 12px',
-                        borderRadius: '16px',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        background: exam.isPublished ? '#dcfce7' : '#fef3c7',
-                        color: exam.isPublished ? '#15803d' : '#b45309',
-                        border: `1px solid ${exam.isPublished ? '#86efac' : '#fde68a'}`
-                      }}
-                    >
-                      {exam.isPublished ? 'PUBLISHED' : 'UNPUBLISHED'}
-                    </span>
-
-                    <button
-                      type="button"
-                      onClick={() => handleTogglePublish(exam._id, exam.isPublished)}
-                      style={{
-                        padding: '8px 16px',
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        background: exam.isPublished ? '#dc2626' : '#16a34a',
-                        color: '#ffffff'
-                      }}
-                    >
-                      {exam.isPublished ? 'Unpublish Results' : 'Publish Results'}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="empty-state">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>No examination records found. Import an Excel sheet to populate.</p>
           </div>
+        ) : (
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Examination</th>
+                <th>Semester &amp; Section</th>
+                <th>Type</th>
+                <th>Questions</th>
+                <th>Marks (Raw → Scale)</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {exams.map(exam => {
+                const total = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);
+                return (
+                  <tr key={exam._id}>
+                    <td>
+                      <strong>{exam.course} — {exam.subject}</strong>
+                    </td>
+                    <td style={{ color: 'var(--text-muted)' }}>Sem {exam.semester} &nbsp;·&nbsp; Sec {exam.section}</td>
+                    <td><span className="badge badge-gray">{exam.examType}</span></td>
+                    <td>
+                      {(exam.questionWeightage || []).length}
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
+                        [{(exam.questionWeightage || []).join(', ')}]
+                      </div>
+                    </td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {total} &rarr; {exam.convertedScale || 30}
+                    </td>
+                    <td>
+                      <span className={`badge ${exam.isPublished ? 'badge-green' : 'badge-amber'}`}>
+                        {exam.isPublished ? 'Published' : 'Unpublished'}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className={`btn btn-sm ${exam.isPublished ? 'btn-danger' : 'btn-success'}`}
+                        onClick={() => handleToggle(exam._id, exam.isPublished)}
+                      >
+                        {exam.isPublished ? 'Unpublish' : 'Publish'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

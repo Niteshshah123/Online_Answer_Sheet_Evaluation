@@ -18,7 +18,7 @@ function getFirst6CharPassword(email) {
 }
 
 async function seed() {
-  const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/online_valuation';
+  const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/online_valuation';
   console.log(`Connecting to MongoDB at ${mongoUri}...`);
 
   await mongoose.connect(mongoUri);

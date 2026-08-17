@@ -2,52 +2,58 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
+const statusBadge = (s) => {
+  if (s === 'LOCKED') return 'badge-green';
+  if (s === 'DRAFT') return 'badge-amber';
+  return 'badge-gray';
+};
+
+const ArrowIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+  </svg>
+);
+
 export default function FacultyAssignmentsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const load = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get('/api/faculty/assignments', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
-      });
-      setItems(response.data.data || []);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    axios.get('/api/faculty/assignments', {
+      headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+    }).then(r => setItems(r.data.data || [])).catch(console.error).finally(() => setLoading(false));
+  }, []);
 
   return (
     <div>
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div>
-          <h2 style={{ margin: '0 0 4px 0', fontSize: '1.4rem', color: '#0f172a' }}>
-            Assigned Evaluation Tasks
-          </h2>
-          <p className="muted" style={{ margin: 0 }}>
-            Select an assigned answer sheet to open the split-panel grading workspace.
-          </p>
-        </div>
+      <div className="page-header">
+        <h1>Assigned Papers</h1>
+        <p>Select an answer sheet to open the evaluation workspace.</p>
       </div>
 
       <div className="card">
+        <div className="card-header">
+          <h2>Evaluation Queue</h2>
+          <span className="badge badge-gray">{items.length} assignments</span>
+        </div>
+
         {loading ? (
-          <p className="muted">Loading assigned sheets...</p>
+          <div className="empty-state"><p>Loading assigned sheets...</p></div>
         ) : items.length === 0 ? (
-          <p className="muted">No evaluation tasks currently assigned to you.</p>
+          <div className="empty-state">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <p>No evaluation tasks currently assigned to you.</p>
+          </div>
         ) : (
-          <table className="table" style={{ width: '100%' }}>
+          <table className="data-table">
             <thead>
               <tr>
-                <th>Student Name & Reg No.</th>
-                <th>Course & Examination</th>
-                <th>Assigned Qs</th>
+                <th>Student</th>
+                <th>Examination</th>
+                <th>Assigned Questions</th>
                 <th>Status</th>
                 <th>Breakdown</th>
                 <th>Action</th>
@@ -58,77 +64,29 @@ export default function FacultyAssignmentsPage() {
                 <tr key={item.sheetId}>
                   <td>
                     <strong>{item.studentName}</strong>
-                    <br />
-                    <code style={{ fontSize: '0.78rem', color: '#64748b' }}>{item.registrationNumber}</code>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', fontFamily: 'monospace' }}>
+                      {item.registrationNumber}
+                    </div>
                   </td>
                   <td>
-                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{item.examName}</span>
-                    <br />
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{item.examContext}</span>
+                    <strong>{item.examName}</strong>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.examContext}</div>
                   </td>
                   <td>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        background: '#e0f2fe',
-                        color: '#0369a1',
-                        borderRadius: '6px',
-                        fontWeight: 700,
-                        fontSize: '0.82rem'
-                      }}
-                    >
-                      {item.questionRange}
-                    </span>
+                    <span className="badge badge-maroon">{item.questionRange}</span>
                   </td>
                   <td>
-                    <span
-                      style={{
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        fontSize: '0.78rem',
-                        fontWeight: 700,
-                        background:
-                          item.status === 'LOCKED'
-                            ? '#dcfce7'
-                            : item.status === 'DRAFT'
-                              ? '#fffbe6'
-                              : '#f1f5f9',
-                        color:
-                          item.status === 'LOCKED'
-                            ? '#15803d'
-                            : item.status === 'DRAFT'
-                              ? '#b45309'
-                              : '#475569',
-                        border: `1px solid ${
-                          item.status === 'LOCKED'
-                            ? '#86efac'
-                            : item.status === 'DRAFT'
-                              ? '#fde68a'
-                              : '#cbd5e1'
-                        }`
-                      }}
-                    >
-                      {item.status}
-                    </span>
+                    <span className={`badge ${statusBadge(item.status)}`}>{item.status}</span>
                   </td>
-                  <td style={{ fontSize: '0.8rem', color: '#475569' }}>
-                    {Object.entries(item.evaluationSummary || {})
-                      .map(([status, count]) => `${status}: ${count}`)
-                      .join(' | ')}
+                  <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {Object.entries(item.evaluationSummary || {}).map(([s, c]) => `${s}: ${c}`).join(' · ')}
                   </td>
                   <td>
                     <button
-                      type="button"
+                      className="btn btn-primary btn-sm"
                       onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
-                      style={{
-                        padding: '6px 14px',
-                        fontSize: '0.82rem',
-                        fontWeight: 600,
-                        background: '#2563eb',
-                        color: '#ffffff'
-                      }}
                     >
-                      Open Sheet ➔
+                      Open <ArrowIcon />
                     </button>
                   </td>
                 </tr>
@@ -140,4 +98,3 @@ export default function FacultyAssignmentsPage() {
     </div>
   );
 }
-
