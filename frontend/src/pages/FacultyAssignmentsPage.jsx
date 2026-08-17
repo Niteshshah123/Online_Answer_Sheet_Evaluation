@@ -86,6 +86,73 @@ export default function FacultyAssignmentsPage() {
   const hasActiveFilter = Object.values(filters).some(v => v !== 'ALL');
   const clearFilters = () => setFilters({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' });
 
+  // Group items by examId for course handling controls
+  const examGroups = items.reduce((acc, item) => {
+    const key = item.examId || 'unknown';
+    if (!acc[key]) {
+      acc[key] = {
+        examId: item.examId,
+        examName: item.examName,
+        finalSubmittedToAdmin: item.finalSubmittedToAdmin,
+        isPublished: item.isPublished,
+        sheets: []
+      };
+    }
+    acc[key].sheets.push(item);
+    return acc;
+  }, {});
+
+  const handleFinalSubmit = async (examId) => {
+    try {
+      setActionMessage('');
+      setErrorMessage('');
+      const res = await axios.post(
+        `/api/faculty/exams/${examId}/final-submit`,
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
+      );
+      setActionMessage(res.data.data?.message || 'Final submission completed. Marks locked.');
+      await load();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Final submission failed.');
+    }
+  };
+
+  const handleTogglePublish = async (examId) => {
+    try {
+      setActionMessage('');
+      setErrorMessage('');
+      const res = await axios.post(
+        `/api/faculty/exams/${examId}/publish`,
+        {},
+        { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
+      );
+      const pub = res.data.data?.isPublished;
+      setActionMessage(pub ? 'Results published to students!' : 'Results unpublished.');
+      await load();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Publish toggle failed.');
+    }
+  };
+
+  const handleExportAUMS = async (examId, examName) => {
+    try {
+      const res = await axios.get(`/api/faculty/exams/${examId}/export-aums`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `AUMS_Export_${examName.replace(/[^a-zA-Z0-9]/g, '_')}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      setErrorMessage('Failed to download AUMS Excel report.');
+    }
+  };
+
   return (
     <div className="dash-root">
       <div className="card">
@@ -181,11 +248,51 @@ export default function FacultyAssignmentsPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {group.sheets.map((item) => (
+                  <tr key={item.sheetId}>
+                    <td>
+                      <strong>{item.studentName}</strong>
+                      <br />
+                      <code style={{ fontSize: '0.78rem', color: '#64748b' }}>{item.registrationNumber}</code>
+                    </td>
+                    <td>
+                      <span style={{ padding: '2px 8px', background: '#e0f2fe', color: '#0369a1', borderRadius: '6px', fontWeight: 700, fontSize: '0.82rem' }}>
+                        {item.questionRange}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '12px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          background: item.status === 'LOCKED' ? '#dcfce7' : item.status === 'DRAFT' ? '#fffbe6' : '#f1f5f9',
+                          color: item.status === 'LOCKED' ? '#15803d' : item.status === 'DRAFT' ? '#b45309' : '#475569',
+                          border: `1px solid ${item.status === 'LOCKED' ? '#86efac' : item.status === 'DRAFT' ? '#fde68a' : '#cbd5e1'}`
+                        }}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
+                        style={{ padding: '6px 14px', fontSize: '0.82rem', fontWeight: 600, background: '#2563eb', color: '#ffffff' }}
+                      >
+                        Open Sheet ➔
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
     </div>
   );
 }

@@ -107,6 +107,35 @@ router.post('/evaluations/:evaluationId/request-unlock', facultyAuthMiddleware, 
   }
 });
 
+router.post('/exams/:examId/final-submit', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const result = await facultyEvaluationService.finalSubmitToAdmin(req.user.email, req.params.examId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/exams/:examId/publish', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const result = await facultyEvaluationService.toggleFacultyPublish(req.user.email, req.params.examId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/exams/:examId/export-aums', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const buffer = await facultyEvaluationService.generateAUMSExport(req.user.email, req.params.examId);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=AUMS_Score_Report_${req.params.examId}.xlsx`);
+    res.send(buffer);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post('/change-password', facultyAuthMiddleware, async (req, res, next) => {
   try {
     const { oldPassword, newPassword } = req.body;

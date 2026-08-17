@@ -151,6 +151,24 @@ router.post('/exams/:id/publish', authMiddleware, async (req, res, next) => {
   }
 });
 
+router.delete('/exams/:id', authMiddleware, async (req, res, next) => {
+  try {
+    const result = await adminFacade.deleteExam(req.params.id, req.user.email);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/sheets/:sheetId', authMiddleware, async (req, res, next) => {
+  try {
+    const result = await adminFacade.deleteAnswerSheet(req.params.sheetId, req.user.email);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/reports', authMiddleware, async (req, res, next) => {
   try {
     const result = await adminFacade.getReports();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 
@@ -48,11 +48,9 @@ const ctrlBtn = {
 export default function FacultyEvaluationPage() {
   const { sheetId } = useParams();
   const navigate = useNavigate();
-  const containerRef = useRef(null);
 
+  const [data, setData] = useState(null);
   const [rows, setRows] = useState([]);
-  const [sheetPdfUrl, setSheetPdfUrl] = useState(null);
-  const [answerKeyUrl, setAnswerKeyUrl] = useState(null);
   const [targetScale, setTargetScale] = useState(30);
   const [message, setMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
@@ -100,8 +98,12 @@ export default function FacultyEvaluationPage() {
     return window.location.port === '5173' ? `http://localhost:3000${url}` : url;
   };
 
-  const sheetPreviewUrl = useMemo(() => resolvePdfUrl(sheetPdfUrl), [sheetPdfUrl]);
-  const answerKeyPreviewUrl = useMemo(() => resolvePdfUrl(answerKeyUrl), [answerKeyUrl]);
+  const questionPaperUrl = useMemo(() => resolvePdfUrl(data?.questionPaperUrl), [data?.questionPaperUrl]);
+  const sheetPdfUrl = useMemo(() => resolvePdfUrl(data?.sheetPdfUrl), [data?.sheetPdfUrl]);
+  const answerKeyUrl = useMemo(() => resolvePdfUrl(data?.answerKeyUrl), [data?.answerKeyUrl]);
+
+  const hasAnswerKey = Boolean(answerKeyUrl);
+  const finalSubmittedToAdmin = Boolean(data?.finalSubmittedToAdmin);
 
   const updateRow = (evaluationId, field, value) => {
     setRows(cur => cur.map(r => r.evaluationId === evaluationId ? { ...r, [field]: value } : r));
@@ -280,8 +282,25 @@ export default function FacultyEvaluationPage() {
                 No answer sheet PDF available
               </div>
             )}
+
+            {/* Tab 4 / Last Tab: Evaluation Panel */}
+            <button
+              type="button"
+              onClick={() => setActiveTab('evaluationPanel')}
+              style={{
+                padding: '12px 18px',
+                fontSize: '0.88rem',
+                fontWeight: 600,
+                border: 'none',
+                borderBottom: activeTab === 'evaluationPanel' ? '3px solid #2563eb' : '3px solid transparent',
+                background: activeTab === 'evaluationPanel' ? '#ffffff' : 'transparent',
+                color: activeTab === 'evaluationPanel' ? '#2563eb' : '#64748b',
+                cursor: 'pointer'
+              }}
+            >
+              📝 Evaluation Panel
+            </button>
           </div>
-        </div>
 
         {/* Resizer 1 */}
         <div

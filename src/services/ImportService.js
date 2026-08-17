@@ -30,9 +30,21 @@ class ImportService {
     for (const row of rows) {
       const student = await this.ensureStudent(row);
       const exam = await this.ensureExam(row);
-      await this.ensureFacultyForRow(row, exam);
-      await this.ensureAnswerSheet(student._id, exam._id, row.answerSheetPdfLink);
-      await this.ensureAnswerKey(exam, row.answerKeyPdfLink);
+      const faculty = await this.ensureFacultyForRow(row, exam);
+      if (faculty && !exam.courseInChargeFacultyId) {
+        exam.courseInChargeFacultyId = faculty._id;
+        await exam.save();
+      }
+      const sheetPdf = (row.answerSheetPdfLink || '').replace(/^\/+/, '');
+      const keyPdf = (row.answerKeyPdfLink || '').replace(/^\/+/, '');
+      const paperPdf = (row.questionPaperPdfLink || '').replace(/^\/+/, '');
+
+      await this.ensureAnswerSheet(student._id, exam._id, sheetPdf);
+      await this.ensureAnswerKey(exam, keyPdf);
+      if (paperPdf && !exam.questionPaperUrl) {
+        exam.questionPaperUrl = paperPdf;
+        await exam.save();
+      }
     }
 
     const exams = await ExamRepository.findAll();
@@ -55,13 +67,18 @@ class ImportService {
         name: row.studentName,
         email: row.studentEmail || ''
       });
+    } else {
+      if (row.studentName) student.name = row.studentName;
+      if (row.studentEmail) student.email = row.studentEmail;
+      await student.save();
     }
 
     if (row.studentEmail) {
       const normalizedEmail = String(row.studentEmail).trim().toLowerCase();
       let user = await User.findOne({ email: normalizedEmail });
       if (!user) {
-        const hashedPassword = await bcrypt.hash('admin123', 10);
+        const pass = normalizedEmail.slice(0, 6);
+        const hashedPassword = await bcrypt.hash(pass, 10);
         user = await User.create({
           role: 'STUDENT',
           email: normalizedEmail,
@@ -86,6 +103,9 @@ class ImportService {
       row.examType
     );
 
+    const paperPdf = (row.questionPaperPdfLink || '').replace(/^\/+/, '');
+    const keyPdf = (row.answerKeyPdfLink || '').replace(/^\/+/, '');
+
     if (!exam) {
       const rawMarks = String(row.questionMarks || '')
         .split(',')
@@ -103,8 +123,13 @@ class ImportService {
         examType: row.examType,
         questionWeightage: rawMarks.length ? rawMarks : [10, 10, 10, 10, 10],
         convertedScale: defaultConvertedScale,
-        answerKeyUrl: row.answerKeyPdfLink || ''
+        questionPaperUrl: paperPdf,
+        answerKeyUrl: keyPdf
       });
+    } else {
+      if (keyPdf && !exam.answerKeyUrl) exam.answerKeyUrl = keyPdf;
+      if (paperPdf && !exam.questionPaperUrl) exam.questionPaperUrl = paperPdf;
+      await exam.save();
     }
 
     return exam;
@@ -120,7 +145,8 @@ class ImportService {
 
     let user = await User.findOne({ email: facultyEmail });
     if (!user) {
-      const hashedPassword = await bcrypt.hash('admin123', 10);
+      const pass = facultyEmail.slice(0, 6);
+      const hashedPassword = await bcrypt.hash(pass, 10);
       user = await User.create({
         role: 'FACULTY',
         email: facultyEmail,
@@ -162,15 +188,20 @@ class ImportService {
   }
 
   async ensureAnswerSheet(studentId, examId, pdfUrl) {
+    const cleanUrl = (pdfUrl || '').replace(/^\/+/, '');
     const existing = await AnswerSheetRepository.findByStudentAndExam(studentId, examId);
     if (!existing) {
-      await AnswerSheetRepository.create({ studentId, examId, pdfUrl });
+      await AnswerSheetRepository.create({ studentId, examId, pdfUrl: cleanUrl });
+    } else if (cleanUrl && existing.pdfUrl !== cleanUrl) {
+      existing.pdfUrl = cleanUrl;
+      await existing.save();
     }
   }
 
   async ensureAnswerKey(exam, pdfUrl) {
-    if (exam && pdfUrl && !exam.answerKeyUrl) {
-      exam.answerKeyUrl = pdfUrl;
+    const cleanUrl = (pdfUrl || '').replace(/^\/+/, '');
+    if (exam && cleanUrl && !exam.answerKeyUrl) {
+      exam.answerKeyUrl = cleanUrl;
       await exam.save();
     }
   }
@@ -206,7 +237,6 @@ class ImportService {
       });
     }
   }
-
 
   async ensureEvaluationsForExam(exam) {
     const answerSheets = await AnswerSheetRepository.findAll({ examId: exam._id });

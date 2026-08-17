@@ -115,7 +115,9 @@ async function seed() {
     examType: 'Mid_Term',
     questionWeightage: [10, 10, 10, 5, 5, 5, 5], // Total 50 marks
     convertedScale: 20, // Converts 50 -> 20 for Midsem
-    answerKeyUrl: '/uploads/pdfs/AnswerKey_3_DBMS_Mid_Term.pdf',
+    questionPaperUrl: 'uploads/pdfs/QuestionPaper_3_DBMS_Mid_Term.pdf',
+    answerKeyUrl: 'uploads/pdfs/AnswerKey_3_DBMS_Mid_Term.pdf',
+    courseInChargeFacultyId: fac1._id,
     isPublished: false
   });
 
@@ -127,7 +129,9 @@ async function seed() {
     examType: 'Mid_Term',
     questionWeightage: [10, 10, 10, 10, 10], // Total 50 marks
     convertedScale: 20,
-    answerKeyUrl: '/uploads/pdfs/AnswerKey_3_OS_Mid_Term.pdf',
+    questionPaperUrl: 'uploads/pdfs/QuestionPaper_3_OS_Mid_Term.pdf',
+    answerKeyUrl: 'uploads/pdfs/AnswerKey_3_OS_Mid_Term.pdf',
+    courseInChargeFacultyId: fac1._id,
     isPublished: false
   });
 
@@ -184,25 +188,25 @@ async function seed() {
   const sheet1 = await AnswerSheet.create({
     studentId: studentEntities[0]._id, // Student 1
     examId: dbmsExam._id,
-    pdfUrl: '/uploads/pdfs/CH.SC.U4CSE23003_3_DBMS_Mid_Term.pdf'
+    pdfUrl: 'uploads/pdfs/CH.SC.U4CSE23003_3_DBMS_Mid_Term.pdf'
   });
 
   const sheet2 = await AnswerSheet.create({
     studentId: studentEntities[1]._id, // Student 2
     examId: dbmsExam._id,
-    pdfUrl: '/uploads/pdfs/CH.SC.U4CSE23004_3_DBMS_Mid_Term.pdf'
+    pdfUrl: 'uploads/pdfs/CH.SC.U4CSE23004_3_DBMS_Mid_Term.pdf'
   });
 
   const sheet3 = await AnswerSheet.create({
     studentId: studentEntities[2]._id, // Student 3
     examId: osExam._id,
-    pdfUrl: '/uploads/pdfs/CH.SC.U4CSE23005_3_OS_Mid_Term.pdf'
+    pdfUrl: 'uploads/pdfs/CH.SC.U4CSE23005_3_OS_Mid_Term.pdf'
   });
 
   const sheet4 = await AnswerSheet.create({
     studentId: studentEntities[3]._id, // Student 4
     examId: osExam._id,
-    pdfUrl: '/uploads/pdfs/CH.SC.U4CSE23006_3_OS_Mid_Term.pdf'
+    pdfUrl: 'uploads/pdfs/CH.SC.U4CSE23006_3_OS_Mid_Term.pdf'
   });
 
   // 8. Seed Question Evaluations
