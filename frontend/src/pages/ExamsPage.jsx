@@ -117,10 +117,10 @@ export default function ExamsPage() {
                     </td>
                     <td>
                       <button
-                        className={`btn btn-sm ${exam.isPublished ? 'btn-danger' : 'btn-success'}`}
-                        onClick={() => handleToggle(exam._id, exam.isPublished)}
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDeleteExam(exam._id, `${exam.course} ${exam.subject} Sem ${exam.semester} Sec ${exam.section}`)}
                       >
-                        {exam.isPublished ? 'Unpublish' : 'Publish'}
+                        Delete Exam 🗑
                       </button>
                     </td>
                   </tr>

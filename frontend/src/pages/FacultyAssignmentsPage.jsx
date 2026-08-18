@@ -26,81 +26,46 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const FilterSelect = ({ label, value, options, onChange }) => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', whiteSpace: 'nowrap' }}>
-      {label}
-    </span>
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      style={{
-        padding: '4px 24px 4px 8px',
-        fontSize: '0.75rem', fontWeight: 500,
-        border: `1px solid ${value !== 'ALL' ? 'var(--amrita-maroon)' : 'var(--border)'}`,
-        borderRadius: 'var(--radius-sm)',
-        background: value !== 'ALL' ? 'var(--accent-light)' : 'var(--bg-white)',
-        color: value !== 'ALL' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-        cursor: 'pointer', outline: 'none', appearance: 'none',
-        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat', backgroundPosition: 'right 6px center',
-      }}
-    >
-      <option value="ALL">All</option>
-      {options.map(o => <option key={o} value={o}>{o}</option>)}
-    </select>
-  </div>
-);
-
 export default function FacultyAssignmentsPage() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' });
+  const [actionMessage, setActionMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    axios.get('/api/faculty/assignments', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
-    }).then(r => setItems(r.data.data || [])).catch(console.error).finally(() => setLoading(false));
-  }, []);
+  const load = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('/api/faculty/assignments', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+      });
+      setItems(response.data.data || []);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const options = useMemo(() => ({
-    depts:    [...new Set(items.map(a => a.examName?.split(' / ')[0]?.trim()).filter(Boolean))],
-    subjects: [...new Set(items.map(a => a.examName?.split(' / ')[1]?.trim()).filter(Boolean))],
-    sections: [...new Set(items.map(a => a.examContext?.split(' ')[1]?.trim()).filter(Boolean))],
-    statuses: [...new Set(items.map(a => a.status).filter(Boolean))],
-  }), [items]);
-
-  const filtered = useMemo(() => items.filter(a => {
-    const dept    = a.examName?.split(' / ')[0]?.trim();
-    const subject = a.examName?.split(' / ')[1]?.trim();
-    const section = a.examContext?.split(' ')[1]?.trim();
-    if (filters.dept    !== 'ALL' && dept    !== filters.dept)    return false;
-    if (filters.subject !== 'ALL' && subject !== filters.subject) return false;
-    if (filters.section !== 'ALL' && section !== filters.section) return false;
-    if (filters.status  !== 'ALL' && a.status !== filters.status) return false;
-    return true;
-  }), [items, filters]);
-
-  const setFilter = (key, val) => setFilters(f => ({ ...f, [key]: val }));
-  const hasActiveFilter = Object.values(filters).some(v => v !== 'ALL');
-  const clearFilters = () => setFilters({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' });
+  useEffect(() => { load(); }, []);
 
   // Group items by examId for course handling controls
-  const examGroups = items.reduce((acc, item) => {
-    const key = item.examId || 'unknown';
-    if (!acc[key]) {
-      acc[key] = {
-        examId: item.examId,
-        examName: item.examName,
-        finalSubmittedToAdmin: item.finalSubmittedToAdmin,
-        isPublished: item.isPublished,
-        sheets: []
-      };
-    }
-    acc[key].sheets.push(item);
-    return acc;
-  }, {});
+  const examGroups = useMemo(() => {
+    return items.reduce((acc, item) => {
+      const key = item.examId || 'unknown';
+      if (!acc[key]) {
+        acc[key] = {
+          examId: item.examId,
+          examName: item.examName,
+          finalSubmittedToAdmin: item.finalSubmittedToAdmin,
+          isPublished: item.isPublished,
+          sheets: []
+        };
+      }
+      acc[key].sheets.push(item);
+      return acc;
+    }, {});
+  }, [items]);
 
   const handleFinalSubmit = async (examId) => {
     try {
@@ -154,105 +119,110 @@ export default function FacultyAssignmentsPage() {
   };
 
   return (
-    <div className="dash-root">
-      <div className="card">
-        <div className="card-header">
-          <h2>Evaluation Queue</h2>
-          <span className="badge badge-gray">{filtered.length} of {items.length} assignments</span>
-        </div>
+    <div>
+      <div className="page-header">
+        <h1>Assigned Valuation Tasks &amp; Course In-Charge Controls</h1>
+        <p>Evaluate student answer sheets, perform Final Submit to Admin, publish results to students, and export AUMS Excel spreadsheets.</p>
+      </div>
 
-        {/* Filter bar */}
-        {items.length > 0 && (
-          <div style={{
-            padding: '10px 16px',
-            borderBottom: '1px solid var(--border)',
-            background: 'var(--bg-subtle)',
-            display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center',
-          }}>
-            <FilterSelect label="Dept"    value={filters.dept}    options={options.depts}    onChange={v => setFilter('dept', v)} />
-            <FilterSelect label="Subject" value={filters.subject} options={options.subjects} onChange={v => setFilter('subject', v)} />
-            <FilterSelect label="Section" value={filters.section} options={options.sections} onChange={v => setFilter('section', v)} />
-            <FilterSelect label="Status"  value={filters.status}  options={options.statuses} onChange={v => setFilter('status', v)} />
-            {hasActiveFilter && (
-              <button
-                onClick={clearFilters}
-                style={{
-                  padding: '4px 10px', fontSize: '0.72rem', fontWeight: 600,
-                  border: '1px solid var(--error-border)', borderRadius: 'var(--radius-sm)',
-                  background: 'var(--error-bg)', color: 'var(--error)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', gap: '4px',
-                }}
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                Clear
-              </button>
-            )}
-          </div>
-        )}
+      {actionMessage && <div className="alert alert-success">✓ {actionMessage}</div>}
+      {errorMessage && <div className="alert alert-error">⚠ {errorMessage}</div>}
 
-        {loading ? (
-          <div className="dash-loading" style={{ padding: '32px 20px' }}>
-            <div className="dash-loading-spinner" /> Loading assignments...
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="empty-state">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-            </svg>
-            <p>{hasActiveFilter ? 'No records match the selected filters.' : 'No evaluation tasks assigned.'}</p>
-          </div>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Student</th>
-                <th>Examination</th>
-                <th>Questions</th>
-                <th>Status</th>
-                <th>Breakdown</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
-                  <td>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
-                      <div>
-                        <strong>{item.studentName}</strong>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '1px' }}>
-                          {item.registrationNumber}
+      {loading ? (
+        <div className="card"><p>Loading assignments...</p></div>
+      ) : items.length === 0 ? (
+        <div className="card"><p>No evaluation tasks currently assigned to you.</p></div>
+      ) : (
+        Object.values(examGroups).map((group) => (
+          <div className="card" key={group.examId} style={{ marginBottom: '24px' }}>
+            {/* Course In-Charge Controls Header Bar */}
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              flexWrap: 'wrap', gap: '12px', paddingBottom: '14px', marginBottom: '14px',
+              borderBottom: '1px solid var(--border)'
+            }}>
+              <div>
+                <h3 style={{ margin: '0 0 4px 0', fontSize: '1.1rem' }}>{group.examName}</h3>
+                <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem' }}>
+                  <span className={`badge ${group.finalSubmittedToAdmin ? 'badge-amber' : 'badge-blue'}`}>
+                    {group.finalSubmittedToAdmin ? 'Final Submitted to Admin (Locked)' : 'Valuation In-Progress'}
+                  </span>
+                  <span className={`badge ${group.isPublished ? 'badge-green' : 'badge-gray'}`}>
+                    {group.isPublished ? 'Results Published to Students' : 'Results Unpublished'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons for Course Handling Faculty */}
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className={`btn btn-sm ${group.isPublished ? 'btn-danger' : 'btn-success'}`}
+                  onClick={() => handleTogglePublish(group.examId)}
+                >
+                  {group.isPublished ? 'Unpublish Results' : 'Publish Results to Students'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary"
+                  onClick={() => handleFinalSubmit(group.examId)}
+                  disabled={group.finalSubmittedToAdmin}
+                >
+                  {group.finalSubmittedToAdmin ? 'Submitted to Admin 🔒' : 'Final Submit to Admin 🔒'}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => handleExportAUMS(group.examId, group.examName)}
+                >
+                  Export AUMS Excel (.xlsx) 📥
+                </button>
+              </div>
+            </div>
+
+            {/* Answer Sheets Table */}
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Student</th>
+                  <th>Assigned Qs</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.sheets.map((item) => (
+                  <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
+                        <div>
+                          <strong>{item.studentName}</strong>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                            {item.registrationNumber}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td>
-                    <strong>{item.examName}</strong>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.examContext}</div>
-                  </td>
-                  <td><span className="badge badge-maroon">{item.questionRange}</span></td>
-                  <td><StatusBadge status={item.status} /></td>
-                  <td style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    {Object.entries(item.evaluationSummary || {}).map(([s, c]) => `${s}: ${c}`).join(' · ')}
-                  </td>
-                  <td onClick={e => e.stopPropagation()}>
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
-                    >
-                      Open
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+                    </td>
+                    <td><span className="badge badge-maroon">{item.questionRange}</span></td>
+                    <td><StatusBadge status={item.status} /></td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
+                      >
+                        Open Sheet ➔
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
+      )}
     </div>
   );
 }
