@@ -177,7 +177,7 @@ class FacultyEvaluationService {
       }
       evaluation.marksObtained = val;
       evaluation.review = update.review ?? evaluation.review;
-      evaluation.status = 'LOCKED';
+      evaluation.status = 'COMPLETED';
       evaluation.evaluatorSubmitted = true;
       evaluation.updatedAt = new Date();
       await evaluation.save();
@@ -193,6 +193,10 @@ class FacultyEvaluationService {
 
     const exam = await ExamRepository.findById(examId);
     if (!exam) throw new AppError('Exam not found', 404);
+
+    if (!exam.isPublished) {
+      throw new AppError('Cannot submit to Admin: Marks must be published for student review first.', 400);
+    }
 
     // Verify all answer sheets for this exam have 100% completed question evaluations
     const answerSheets = await AnswerSheetRepository.findAll({ examId });
@@ -241,6 +245,10 @@ class FacultyEvaluationService {
 
     const exam = await ExamRepository.findById(examId);
     if (!exam) throw new AppError('Exam not found', 404);
+
+    if (!exam.finalSubmittedToAdmin) {
+      throw new AppError('Access Denied: Excel report export is restricted until Final Submission to Admin is completed.', 403);
+    }
 
     const answerSheets = await AnswerSheetRepository.findAll({ examId: exam._id });
     const fullRawMarks = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);

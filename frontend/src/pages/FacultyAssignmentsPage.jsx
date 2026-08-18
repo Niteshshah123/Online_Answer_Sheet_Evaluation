@@ -155,27 +155,34 @@ export default function FacultyAssignmentsPage() {
 
               {/* Action Buttons for Course Handling Faculty */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {/* Step 1: Publish for Student Review */}
                 <button
                   type="button"
                   className={`btn btn-sm ${group.isPublished ? 'btn-danger' : 'btn-success'}`}
+                  disabled={group.finalSubmittedToAdmin}
                   onClick={() => handleTogglePublish(group.examId)}
                 >
-                  {group.isPublished ? 'Unpublish Results' : 'Publish Results to Students'}
+                  {group.isPublished ? 'Unpublish Student Review' : 'Publish for Student Review'}
                 </button>
 
+                {/* Step 2: Submit to Admin (DISABLED until Publish for Student Review is completed) */}
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"
                   onClick={() => handleFinalSubmit(group.examId)}
-                  disabled={group.finalSubmittedToAdmin}
+                  disabled={group.finalSubmittedToAdmin || !group.isPublished}
+                  title={!group.isPublished ? 'Publish for Student Review first to enable Submit to Admin' : ''}
                 >
-                  {group.finalSubmittedToAdmin ? 'Submitted to Admin 🔒' : 'Final Submit to Admin 🔒'}
+                  {group.finalSubmittedToAdmin ? 'Submitted to Admin 🔒' : 'Submit to Admin 🔒'}
                 </button>
 
+                {/* Step 3: Export AUMS Excel (DISABLED until Submit to Admin is completed) */}
                 <button
                   type="button"
                   className="btn btn-sm btn-secondary"
                   onClick={() => handleExportAUMS(group.examId, group.examName)}
+                  disabled={!group.finalSubmittedToAdmin}
+                  title={!group.finalSubmittedToAdmin ? 'Submit marks to Admin first to enable Excel Export' : ''}
                 >
                   Export AUMS Excel (.xlsx) 📥
                 </button>

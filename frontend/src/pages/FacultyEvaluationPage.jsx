@@ -81,11 +81,15 @@ export default function FacultyEvaluationPage() {
   const resolvePdfUrl = (url) => {
     if (!url) return null;
     if (/^(https?:)?\/\//.test(url)) return url;
-    return window.location.port === '5173' ? `http://localhost:3000${url}` : url;
+    return window.location.port === '5173' ? `http://localhost:3000/${url}` : url;
   };
 
+  
+  
   const sheetPreviewUrl = useMemo(() => resolvePdfUrl(sheetPdfUrl), [sheetPdfUrl]);
   const answerKeyPreviewUrl = useMemo(() => resolvePdfUrl(answerKeyUrl), [answerKeyUrl]);
+  
+  console.log(sheetPreviewUrl);
 
   const updateRow = (id, field, value) =>
     setRows(cur => cur.map(r => r.evaluationId === id ? { ...r, [field]: value } : r));
@@ -358,21 +362,17 @@ export default function FacultyEvaluationPage() {
                 </div>
               </div>
 
-              {!isLockedOrRequested ? (
+              {!finalSubmittedToAdmin ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={hasErrors || !allEvaluated} style={{ opacity: hasErrors || !allEvaluated ? 0.5 : 1 }}>
-                    Submit &amp; Lock
+                    Submit Marks for Student Review
                   </button>
-                  {!allEvaluated && <p style={{ fontSize: '0.72rem', color: 'var(--warning)', textAlign: 'center', margin: 0 }}>All questions must be marked first.</p>}
-                  <button className="btn btn-ghost btn-full" onClick={handleDraft} disabled={hasErrors}>Save</button>
+                  {!allEvaluated && <p style={{ fontSize: '0.72rem', color: 'var(--warning)', textAlign: 'center', margin: 0 }}>All questions must be marked before submission.</p>}
+                  <button className="btn btn-ghost btn-full" onClick={handleDraft} disabled={hasErrors}>Save Draft</button>
                 </div>
-              ) : statusSummary === 'LOCKED' ? (
-                <button className="btn btn-full" onClick={handleUnlock} style={{ background: 'var(--warning-bg)', color: 'var(--warning)', border: '1px solid var(--warning-border)' }}>
-                  Request Unlock from Admin
-                </button>
               ) : (
-                <div style={{ textAlign: 'center', padding: '10px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: 'var(--radius)', fontSize: '0.78rem', color: 'var(--warning)', fontWeight: 500 }}>
-                  Unlock request pending admin approval.
+                <div style={{ textAlign: 'center', padding: '10px', background: 'var(--success-bg)', border: '1px solid var(--success-border)', borderRadius: 'var(--radius)', fontSize: '0.78rem', color: 'var(--success)', fontWeight: 600 }}>
+                  🔒 Marks Permanently Locked (Final Submitted to Admin)
                 </div>
               )}
             </div>
