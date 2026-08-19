@@ -50,6 +50,8 @@ export default function FacultyEvaluationPage() {
   const [keyZoom, setKeyZoom] = useState(100);
   const [keyRotate, setKeyRotate] = useState(0);
 
+  const [finalSubmittedToAdmin, setFinalSubmittedToAdmin] = useState(false);
+
   const load = async () => {
     try {
       setLoading(true); setErrorMessage('');
@@ -60,6 +62,7 @@ export default function FacultyEvaluationPage() {
       setRows(d.evaluations || []);
       setSheetPdfUrl(d.sheetPdfUrl || null);
       setAnswerKeyUrl(d.answerKeyUrl || null);
+      setFinalSubmittedToAdmin(Boolean(d.finalSubmittedToAdmin));
       if (d.convertedScale) setTargetScale(d.convertedScale);
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'Unable to load evaluation sheet.');
@@ -89,7 +92,7 @@ export default function FacultyEvaluationPage() {
   const sheetPreviewUrl = useMemo(() => resolvePdfUrl(sheetPdfUrl), [sheetPdfUrl]);
   const answerKeyPreviewUrl = useMemo(() => resolvePdfUrl(answerKeyUrl), [answerKeyUrl]);
   
-  console.log(sheetPreviewUrl);
+  // console.log(sheetPreviewUrl);
 
   const updateRow = (id, field, value) =>
     setRows(cur => cur.map(r => r.evaluationId === id ? { ...r, [field]: value } : r));

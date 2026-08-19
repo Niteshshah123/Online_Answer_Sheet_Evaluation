@@ -155,34 +155,37 @@ export default function FacultyAssignmentsPage() {
 
               {/* Action Buttons for Course Handling Faculty */}
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                {/* Step 1: Publish for Student Review */}
+                {/* Step 1 & 2: Publish for Student Review / Unpublish */}
                 <button
                   type="button"
                   className={`btn btn-sm ${group.isPublished ? 'btn-danger' : 'btn-success'}`}
                   disabled={group.finalSubmittedToAdmin}
                   onClick={() => handleTogglePublish(group.examId)}
+                  style={{ opacity: group.finalSubmittedToAdmin ? 0.5 : 1, cursor: group.finalSubmittedToAdmin ? 'not-allowed' : 'pointer' }}
                 >
-                  {group.isPublished ? 'Unpublish Student Review' : 'Publish for Student Review'}
+                  {group.isPublished ? 'Unpublish Student Review ↩' : 'Publish for Student Review 👁'}
                 </button>
 
-                {/* Step 2: Submit to Admin (DISABLED until Publish for Student Review is completed) */}
+                {/* Step 3: Submit to Admin (DISABLED until Publish for Student Review is completed) */}
                 <button
                   type="button"
                   className="btn btn-sm btn-primary"
                   onClick={() => handleFinalSubmit(group.examId)}
                   disabled={group.finalSubmittedToAdmin || !group.isPublished}
-                  title={!group.isPublished ? 'Publish for Student Review first to enable Submit to Admin' : ''}
+                  style={{ opacity: (group.finalSubmittedToAdmin || !group.isPublished) ? 0.5 : 1, cursor: (group.finalSubmittedToAdmin || !group.isPublished) ? 'not-allowed' : 'pointer' }}
+                  title={!group.isPublished ? 'You must Publish for Student Review first before submitting to Admin' : ''}
                 >
                   {group.finalSubmittedToAdmin ? 'Submitted to Admin 🔒' : 'Submit to Admin 🔒'}
                 </button>
 
-                {/* Step 3: Export AUMS Excel (DISABLED until Submit to Admin is completed) */}
+                {/* Step 4: Export AUMS Excel (DISABLED until Submit to Admin is completed) */}
                 <button
                   type="button"
                   className="btn btn-sm btn-secondary"
                   onClick={() => handleExportAUMS(group.examId, group.examName)}
                   disabled={!group.finalSubmittedToAdmin}
-                  title={!group.finalSubmittedToAdmin ? 'Submit marks to Admin first to enable Excel Export' : ''}
+                  style={{ opacity: !group.finalSubmittedToAdmin ? 0.5 : 1, cursor: !group.finalSubmittedToAdmin ? 'not-allowed' : 'pointer' }}
+                  title={!group.finalSubmittedToAdmin ? 'You must Submit marks to Admin first before downloading Excel report' : ''}
                 >
                   Export AUMS Excel (.xlsx) 📥
                 </button>
