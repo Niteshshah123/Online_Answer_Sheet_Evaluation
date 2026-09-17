@@ -440,188 +440,189 @@ export default function ExamsPage() {
       </div>
 
       {/* ────────────────────────────────────────────────────────
-          2. ADVANCED FILTER & GLOBAL SEARCH BAR
+          2. COMPACT MODERN FILTER & SEARCH TOOLBAR
          ──────────────────────────────────────────────────────── */}
-      <div className="card" style={{ padding: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Top Row: Search input + View Switcher */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '450px' }}>
-              <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}>
-                <SearchIcon />
-              </div>
-              <input
-                className="form-input"
-                style={{ paddingLeft: '32px', fontSize: '0.84rem' }}
-                placeholder="Search by subject name, course code, faculty name or email..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* View Mode Toggle Switcher */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>View:</span>
-              <div style={{ display: 'inline-flex', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('card')}
-                  style={{
-                    padding: '5px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: viewMode === 'card' ? 700 : 500,
-                    color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                    background: viewMode === 'card' ? 'white' : 'transparent',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <GridIcon /> Grouped Cards
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    padding: '5px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: viewMode === 'table' ? 700 : 500,
-                    color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                    background: viewMode === 'table' ? 'white' : 'transparent',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <ListIcon /> Compact Table
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Filter Dropdowns Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr)) auto',
-            gap: '10px',
-            alignItems: 'center',
-            borderTop: '1px solid var(--border)',
-            paddingTop: '12px'
-          }}>
-            {/* Department */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Department
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterCourse}
-                onChange={e => setFilterCourse(e.target.value)}
-              >
-                {uniqueCourses.map(c => <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>)}
-              </select>
-            </div>
-
-            {/* Subject */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Subject
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSubject}
-                onChange={e => setFilterSubject(e.target.value)}
-              >
-                {uniqueSubjects.map(s => <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>)}
-              </select>
-            </div>
-
-            {/* Semester */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Semester
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSemester}
-                onChange={e => setFilterSemester(e.target.value)}
-              >
-                {uniqueSemesters.map(sem => <option key={sem} value={sem}>{sem === 'ALL' ? 'All Sems' : `Sem ${sem}`}</option>)}
-              </select>
-            </div>
-
-            {/* Section */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Section
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSection}
-                onChange={e => setFilterSection(e.target.value)}
-              >
-                {uniqueSections.map(sec => <option key={sec} value={sec}>{sec === 'ALL' ? 'All Secs' : `Sec ${sec}`}</option>)}
-              </select>
-            </div>
-
-            {/* Exam Type */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Exam Type
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterExamType}
-                onChange={e => setFilterExamType(e.target.value)}
-              >
-                {uniqueExamTypes.map(t => <option key={t} value={t}>{t === 'ALL' ? 'All Types' : t}</option>)}
-              </select>
-            </div>
-
-            {/* Status */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Status
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value)}
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="PUBLISHED">Published Only</option>
-                <option value="UNPUBLISHED">Unpublished / Draft</option>
-                <option value="FINAL_SUBMITTED">Final Submitted</option>
-              </select>
-            </div>
-
-            {/* Reset Button */}
-            <div style={{ alignSelf: 'flex-end' }}>
+      <div className="filter-toolbar">
+        {/* Top Row: Search input + View Switcher */}
+        <div className="filter-toolbar-top">
+          <div className="filter-search-box">
+            <span className="filter-search-icon">
+              <SearchIcon />
+            </span>
+            <input
+              className="filter-search-input"
+              placeholder="Search subject, course code, faculty name or email..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={resetFilters}
-                style={{ fontSize: '0.75rem', padding: '6px 10px', height: '32px' }}
-                title="Reset all search filters"
+                className="filter-search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
               >
-                Reset Filters
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* View Mode Toggle Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>View:</span>
+            <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: viewMode === 'card' ? 700 : 500,
+                  color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                  background: viewMode === 'card' ? 'var(--bg-white)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <GridIcon /> Grouped Cards
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: viewMode === 'table' ? 700 : 500,
+                  color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                  background: viewMode === 'table' ? 'var(--bg-white)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <ListIcon /> Compact Table
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Bottom Row: Inline Filter Pills */}
+        <div className="filter-pills-row">
+          {/* Department */}
+          <div className={`filter-pill ${filterCourse !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Dept:</span>
+            <select
+              className="filter-pill-select"
+              value={filterCourse}
+              onChange={e => setFilterCourse(e.target.value)}
+            >
+              {uniqueCourses.map(c => (
+                <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Subject */}
+          <div className={`filter-pill ${filterSubject !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Subject:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSubject}
+              onChange={e => setFilterSubject(e.target.value)}
+            >
+              {uniqueSubjects.map(s => (
+                <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Semester */}
+          <div className={`filter-pill ${filterSemester !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Sem:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSemester}
+              onChange={e => setFilterSemester(e.target.value)}
+            >
+              {uniqueSemesters.map(sem => (
+                <option key={sem} value={sem}>{sem === 'ALL' ? 'All Sems' : `Sem ${sem}`}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section */}
+          <div className={`filter-pill ${filterSection !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Sec:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSection}
+              onChange={e => setFilterSection(e.target.value)}
+            >
+              {uniqueSections.map(sec => (
+                <option key={sec} value={sec}>{sec === 'ALL' ? 'All Secs' : `Sec ${sec}`}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Exam Type */}
+          <div className={`filter-pill ${filterExamType !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Type:</span>
+            <select
+              className="filter-pill-select"
+              value={filterExamType}
+              onChange={e => setFilterExamType(e.target.value)}
+            >
+              {uniqueExamTypes.map(t => (
+                <option key={t} value={t}>{t === 'ALL' ? 'All Types' : t}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status */}
+          <div className={`filter-pill ${filterStatus !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Status:</span>
+            <select
+              className="filter-pill-select"
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PUBLISHED">Published Only</option>
+              <option value="UNPUBLISHED">Unpublished</option>
+              <option value="FINAL_SUBMITTED">Final Submitted</option>
+            </select>
+          </div>
+
+          {/* Reset Button (visible when active) */}
+          {(filterCourse !== 'ALL' || filterSubject !== 'ALL' || filterSemester !== 'ALL' || filterSection !== 'ALL' || filterExamType !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim()) && (
+            <button
+              type="button"
+              className="filter-reset-btn"
+              onClick={resetFilters}
+              title="Reset all search filters"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+              Reset Filters
+            </button>
+          )}
+
+          <span className="filter-stats-text">
+            Showing <strong>{filteredExams.length}</strong> of {exams.length} exams
+          </span>
         </div>
       </div>
 

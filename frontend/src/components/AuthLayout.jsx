@@ -21,11 +21,7 @@ export default function AuthLayout({ roleTag, hint, links, children }) {
           </Link>
 
           <div className="auth-left-logo">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5"/>
-              <path d="M2 12l10 5 10-5"/>
-            </svg>
+            <img src="/uploads/images/logo.png" alt="Amrita Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <h1 className="auth-left-title">Amrita University</h1>
           <p className="auth-left-sub">Examination Cell · Answer Sheet Evaluation</p>

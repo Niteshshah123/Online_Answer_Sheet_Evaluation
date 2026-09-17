@@ -366,240 +366,242 @@ export default function FacultyAssignmentsPage() {
       {/* ────────────────────────────────────────────────────────
           1. TOP SUMMARY METRIC CARDS
          ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
         {/* Total Assigned */}
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid var(--amrita-maroon)' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid var(--amrita-maroon)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Total Assigned Scripts
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--text-primary)', margin: '4px 0' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0', lineHeight: 1.1 }}>
             {summaryMetrics.totalAssigned}
           </div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
             Across {summaryMetrics.uniqueExams} cohort section(s)
           </div>
         </div>
 
         {/* Evaluation Progress */}
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #16a34a' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #16a34a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Valuation Completed
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', margin: '4px 0' }}>
-            <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#166534' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '2px 0', lineHeight: 1.1 }}>
+            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a' }}>
               {summaryMetrics.completedCount}
             </span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               / {summaryMetrics.totalAssigned} Scripts
             </span>
           </div>
-          <div style={{ fontSize: '0.74rem', color: '#166534', fontWeight: 600 }}>
+          <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
             {summaryMetrics.totalAssigned ? Math.round((summaryMetrics.completedCount / summaryMetrics.totalAssigned) * 100) : 0}% Valuation Finished
           </div>
         </div>
 
         {/* In Progress / Pending */}
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #d97706' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #d97706', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Pending &amp; In-Progress
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', margin: '4px 0' }}>
-            <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#d97706' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '2px 0', lineHeight: 1.1 }}>
+            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#d97706' }}>
               {summaryMetrics.pendingCount + summaryMetrics.draftCount}
             </span>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
               Remaining
             </span>
           </div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
-            {summaryMetrics.draftCount} in Draft &nbsp;·&nbsp; {summaryMetrics.pendingCount} Pending
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+            <strong style={{ color: '#d97706' }}>{summaryMetrics.draftCount}</strong> Draft &nbsp;·&nbsp; <strong>{summaryMetrics.pendingCount}</strong> Pending
           </div>
         </div>
 
         {/* Academic Scope */}
-        <div className="card" style={{ padding: '16px', borderLeft: '4px solid #2563eb' }}>
-          <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #2563eb', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Active Curricula
           </div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#1e3a8a', margin: '4px 0' }}>
+          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', margin: '2px 0', lineHeight: 1.1 }}>
             {summaryMetrics.uniqueSubs}
           </div>
-          <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
             Subject(s) across {summaryMetrics.uniqueDepts} Department(s)
           </div>
         </div>
       </div>
 
       {/* ────────────────────────────────────────────────────────
-          2. ADVANCED FILTER & SEARCH BAR
+          2. COMPACT MODERN FILTER & SEARCH TOOLBAR
          ──────────────────────────────────────────────────────── */}
-      <div className="card" style={{ padding: '16px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {/* Top Row: Search input + View Switcher */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-            <div style={{ position: 'relative', flex: '1 1 300px', maxWidth: '450px' }}>
-              <div style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', display: 'flex' }}>
-                <SearchIcon />
-              </div>
-              <input
-                className="form-input"
-                style={{ paddingLeft: '32px', fontSize: '0.84rem' }}
-                placeholder="Search by student name, roll number, subject, section..."
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-              />
-            </div>
-
-            {/* View Mode Toggle Switcher */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>View:</span>
-              <div style={{ display: 'inline-flex', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('card')}
-                  style={{
-                    padding: '5px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: viewMode === 'card' ? 700 : 500,
-                    color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                    background: viewMode === 'card' ? 'white' : 'transparent',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <GridIcon /> Grouped Cohorts
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('table')}
-                  style={{
-                    padding: '5px 12px',
-                    fontSize: '0.78rem',
-                    fontWeight: viewMode === 'table' ? 700 : 500,
-                    color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                    background: viewMode === 'table' ? 'white' : 'transparent',
-                    border: 'none',
-                    borderRadius: 'var(--radius-sm)',
-                    boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px'
-                  }}
-                >
-                  <ListIcon /> Flat Student List
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Filter Dropdowns Grid */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr)) auto',
-            gap: '10px',
-            alignItems: 'center',
-            borderTop: '1px solid var(--border)',
-            paddingTop: '12px'
-          }}>
-            {/* Department */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Department
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterCourse}
-                onChange={e => setFilterCourse(e.target.value)}
-              >
-                {uniqueCourses.map(c => <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>)}
-              </select>
-            </div>
-
-            {/* Subject */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Subject
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSubject}
-                onChange={e => setFilterSubject(e.target.value)}
-              >
-                {uniqueSubjects.map(s => <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>)}
-              </select>
-            </div>
-
-            {/* Semester */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Semester
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSemester}
-                onChange={e => setFilterSemester(e.target.value)}
-              >
-                {uniqueSemesters.map(sem => <option key={sem} value={sem}>{sem === 'ALL' ? 'All Sems' : `Sem ${sem}`}</option>)}
-              </select>
-            </div>
-
-            {/* Section */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Section
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterSection}
-                onChange={e => setFilterSection(e.target.value)}
-              >
-                {uniqueSections.map(sec => <option key={sec} value={sec}>{sec === 'ALL' ? 'All Secs' : `Sec ${sec}`}</option>)}
-              </select>
-            </div>
-
-            {/* Valuation Status */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
-                Status
-              </label>
-              <select
-                className="form-input"
-                style={{ padding: '5px 8px', fontSize: '0.78rem' }}
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value)}
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="PENDING">Pending</option>
-                <option value="DRAFT">Draft / In Progress</option>
-                <option value="COMPLETED">Completed / Submitted</option>
-                <option value="LOCKED">Locked</option>
-                <option value="UNLOCK_REQUESTED">Unlock Requested</option>
-              </select>
-            </div>
-
-            {/* Reset Button */}
-            <div style={{ alignSelf: 'flex-end' }}>
+      <div className="filter-toolbar">
+        {/* Top Row: Search input + View Switcher */}
+        <div className="filter-toolbar-top">
+          <div className="filter-search-box">
+            <span className="filter-search-icon">
+              <SearchIcon />
+            </span>
+            <input
+              className="filter-search-input"
+              placeholder="Search student name, roll no, subject, section..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
               <button
                 type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={resetFilters}
-                style={{ fontSize: '0.75rem', padding: '6px 10px', height: '32px' }}
-                title="Reset all search filters"
+                className="filter-search-clear"
+                onClick={() => setSearchQuery('')}
+                title="Clear search"
               >
-                Reset Filters
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* View Mode Toggle Switcher */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>View:</span>
+            <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
+              <button
+                type="button"
+                onClick={() => setViewMode('card')}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: viewMode === 'card' ? 700 : 500,
+                  color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                  background: viewMode === 'card' ? 'var(--bg-white)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <GridIcon /> Grouped Cohorts
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                style={{
+                  padding: '5px 12px',
+                  fontSize: '0.76rem',
+                  fontWeight: viewMode === 'table' ? 700 : 500,
+                  color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                  background: viewMode === 'table' ? 'var(--bg-white)' : 'transparent',
+                  border: 'none',
+                  borderRadius: '6px',
+                  boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                <ListIcon /> Flat Student List
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Bottom Row: Inline Filter Pills */}
+        <div className="filter-pills-row">
+          {/* Department */}
+          <div className={`filter-pill ${filterCourse !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Dept:</span>
+            <select
+              className="filter-pill-select"
+              value={filterCourse}
+              onChange={e => setFilterCourse(e.target.value)}
+            >
+              {uniqueCourses.map(c => (
+                <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Subject */}
+          <div className={`filter-pill ${filterSubject !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Subject:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSubject}
+              onChange={e => setFilterSubject(e.target.value)}
+            >
+              {uniqueSubjects.map(s => (
+                <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Semester */}
+          <div className={`filter-pill ${filterSemester !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Sem:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSemester}
+              onChange={e => setFilterSemester(e.target.value)}
+            >
+              {uniqueSemesters.map(sem => (
+                <option key={sem} value={sem}>{sem === 'ALL' ? 'All Sems' : `Sem ${sem}`}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section */}
+          <div className={`filter-pill ${filterSection !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Sec:</span>
+            <select
+              className="filter-pill-select"
+              value={filterSection}
+              onChange={e => setFilterSection(e.target.value)}
+            >
+              {uniqueSections.map(sec => (
+                <option key={sec} value={sec}>{sec === 'ALL' ? 'All Secs' : `Sec ${sec}`}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status */}
+          <div className={`filter-pill ${filterStatus !== 'ALL' ? 'active' : ''}`}>
+            <span className="filter-pill-label">Status:</span>
+            <select
+              className="filter-pill-select"
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value)}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="DRAFT">Draft</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="LOCKED">Locked</option>
+              <option value="UNLOCK_REQUESTED">Unlock Requested</option>
+            </select>
+          </div>
+
+          {/* Reset Button (visible when active) */}
+          {(filterCourse !== 'ALL' || filterSubject !== 'ALL' || filterSemester !== 'ALL' || filterSection !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim()) && (
+            <button
+              type="button"
+              className="filter-reset-btn"
+              onClick={resetFilters}
+              title="Reset all search filters"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                <path d="M3 3v5h5"/>
+              </svg>
+              Reset Filters
+            </button>
+          )}
+
+          <span className="filter-stats-text">
+            Showing <strong>{filteredItems.length}</strong> of {items.length} scripts
+          </span>
         </div>
       </div>
 
