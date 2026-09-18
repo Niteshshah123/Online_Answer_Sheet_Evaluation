@@ -36,6 +36,10 @@ export default function FacultyEvaluationPage() {
   const { sheetId } = useParams();
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const pageRootRef = useRef(null);
+
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showEvalPanel, setShowEvalPanel] = useState(true);
 
   const [rows, setRows] = useState([]);
   const [questionPaperUrl, setQuestionPaperUrl] = useState(null);
@@ -223,8 +227,67 @@ export default function FacultyEvaluationPage() {
     return () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
   }, [isDragging, panelWidths]);
 
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      if (pageRootRef.current?.requestFullscreen) {
+        pageRootRef.current.requestFullscreen().catch(() => {
+          setIsFullscreen(true);
+        });
+      } else {
+        setIsFullscreen(true);
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    document.addEventListener('webkitfullscreenchange', handleFsChange);
+    document.addEventListener('mozfullscreenchange', handleFsChange);
+    document.addEventListener('MSFullscreenChange', handleFsChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFsChange);
+      document.removeEventListener('webkitfullscreenchange', handleFsChange);
+      document.removeEventListener('mozfullscreenchange', handleFsChange);
+      document.removeEventListener('MSFullscreenChange', handleFsChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        }
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFullscreen]);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 52px)', background: 'var(--bg-page)' }}>
+    <div
+      ref={pageRootRef}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: isFullscreen ? '100vh' : 'calc(100vh - 52px)',
+        width: '100%',
+        background: 'var(--bg-page)',
+        position: isFullscreen ? 'fixed' : 'relative',
+        inset: isFullscreen ? 0 : 'auto',
+        zIndex: isFullscreen ? 9999 : 'auto',
+        overflow: 'hidden'
+      }}
+    >
 
       {/* Workspace header */}
       <div style={{ padding: '0 20px', height: '48px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -242,7 +305,72 @@ export default function FacultyEvaluationPage() {
             </span>
           </div>
         </div>
-        <span className={`badge ${STATUS_BADGE[statusSummary] || 'badge-gray'}`}>{statusSummary}</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Marks Evaluation Panel Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowEvalPanel(p => !p)}
+            className={showEvalPanel ? 'btn btn-ghost btn-sm' : 'btn btn-primary btn-sm'}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600 }}
+            title={showEvalPanel ? 'Hide Marks Evaluation Panel' : 'Show Marks Evaluation Panel'}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {showEvalPanel ? (
+                <>
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
+                  <polyline points="18 10 16 12 18 14" />
+                </>
+              ) : (
+                <>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                </>
+              )}
+            </svg>
+            {showEvalPanel ? 'Hide Marks' : 'Assign Marks'}
+          </button>
+
+          {/* Full Screen Toggle Button */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className="btn btn-ghost btn-sm"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              background: isFullscreen ? 'var(--accent-light)' : undefined,
+              color: isFullscreen ? 'var(--amrita-maroon)' : undefined,
+              borderColor: isFullscreen ? 'var(--amrita-maroon)' : undefined
+            }}
+            title={isFullscreen ? 'Exit Full Screen (Esc)' : 'Enter Full Screen'}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              {isFullscreen ? (
+                <>
+                  <polyline points="4 14 10 14 10 20" />
+                  <polyline points="20 10 14 10 14 4" />
+                  <line x1="14" y1="10" x2="21" y2="3" />
+                  <line x1="10" y1="14" x2="3" y2="21" />
+                </>
+              ) : (
+                <>
+                  <polyline points="15 3 21 3 21 9" />
+                  <polyline points="9 21 3 21 3 15" />
+                  <line x1="21" y1="3" x2="14" y2="10" />
+                  <line x1="3" y1="21" x2="10" y2="14" />
+                </>
+              )}
+            </svg>
+            {isFullscreen ? 'Exit Fullscreen' : 'Full Screen'}
+          </button>
+
+          <span className={`badge ${STATUS_BADGE[statusSummary] || 'badge-gray'}`}>{statusSummary}</span>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -263,8 +391,8 @@ export default function FacultyEvaluationPage() {
         style={{
           display: 'grid',
           gridTemplateColumns: isMidTerm
-            ? `${panelWidths.left}% 5px ${panelWidths.center}% 5px ${panelWidths.right}%`
-            : '24% 4px 26% 4px 24% 4px 22%',
+            ? (showEvalPanel ? `${panelWidths.left}% 5px ${panelWidths.center}% 5px ${panelWidths.right}%` : '1fr 6px 1fr')
+            : (showEvalPanel ? '24% 4px 26% 4px 24% 4px 22%' : '1fr 6px 1fr 6px 1fr'),
           flex: 1,
           overflow: 'hidden'
         }}
@@ -316,9 +444,11 @@ export default function FacultyEvaluationPage() {
         </div>
 
         {/* Resizer 2 (For Mid-Term split or End-Sem panel 3) */}
-        <div onMouseDown={() => setIsDragging('right')}
-          style={{ cursor: 'col-resize', background: isDragging === 'right' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
-        />
+        {(!isMidTerm || showEvalPanel) && (
+          <div onMouseDown={() => setIsDragging('right')}
+            style={{ cursor: 'col-resize', background: isDragging === 'right' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
+          />
+        )}
 
         {/* Panel 3 — Official Answer Key (ONLY displayed for End-Sem / End-Term Exams) */}
         {!isMidTerm && (
@@ -343,17 +473,39 @@ export default function FacultyEvaluationPage() {
             </div>
 
             {/* Resizer 3 (For 4th panel in End-Sem) */}
-            <div style={{ cursor: 'col-resize', background: 'var(--border)' }} />
+            {showEvalPanel && (
+              <div style={{ cursor: 'col-resize', background: 'var(--border)' }} />
+            )}
           </>
         )}
 
         {/* Final Panel — Question Evaluation Form */}
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Question Evaluation
-            </span>
-          </div>
+        {showEvalPanel && (
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
+            <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Question Evaluation
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowEvalPanel(false)}
+                style={{
+                  ...ctrlBtn,
+                  width: 'auto',
+                  padding: '2px 8px',
+                  gap: '4px',
+                  fontSize: '0.68rem',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)'
+                }}
+                title="Hide evaluation panel"
+              >
+                Hide
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '12px' }}>
             {loading ? (
@@ -470,7 +622,45 @@ export default function FacultyEvaluationPage() {
             </div>
           )}
         </div>
+      )}
       </div>
+
+      {/* Floating quick-access button to restore evaluation panel */}
+      {!showEvalPanel && (
+        <button
+          type="button"
+          onClick={() => setShowEvalPanel(true)}
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            zIndex: 10000,
+            boxShadow: '0 4px 18px rgba(0,0,0,0.22)',
+            background: 'var(--amrita-maroon)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '9999px',
+            padding: '10px 18px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 600,
+            fontSize: '0.82rem',
+            transition: 'transform 0.15s, box-shadow 0.15s'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 22px rgba(0,0,0,0.3)'; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 18px rgba(0,0,0,0.22)'; }}
+          title="Open Question Evaluation Panel"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 20h9" />
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+          </svg>
+          Assign Marks ({totals.convertedScore}/{totals.scale})
+        </button>
+      )}
     </div>
   );
 }
+

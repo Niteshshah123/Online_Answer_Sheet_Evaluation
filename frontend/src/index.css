@@ -2843,3 +2843,77 @@ input, select, textarea { color: var(--text-primary); }
     text-align: center;
   }
 }
+
+
+/* ─────────────────────────────────────────
+   FACULTY DASHBOARD MODERN STYLES
+───────────────────────────────────────── */
+.fac-dash-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+.fac-dash-tr:hover {
+  background: var(--bg-subtle);
+}
+
+.fac-dash-action-btn:hover {
+  background: var(--bg-subtle) !important;
+  transform: translateX(2px);
+}
+
+.fac-dash-dots-btn:hover {
+  background: var(--bg-subtle) !important;
+  color: var(--text-primary) !important;
+}
+
+.fac-dash-menu-item:hover {
+  background: var(--bg-subtle);
+}
+
+.fac-dash-filter-select:hover {
+  border-color: var(--border-strong);
+}
+
+.fac-dash-filter-select:focus {
+  border-color: #1E3A5F;
+}
+
+/* Dark Mode Overrides for Faculty Dashboard */
+[data-theme='dark'] .fac-dash-hero-overlay {
+  background: linear-gradient(90deg, #0B1120 0%, rgba(11, 17, 32, 0.98) 46%, rgba(11, 17, 32, 0.85) 60%, rgba(11, 17, 32, 0.2) 74%, transparent 88%) !important;
+}
+
+[data-theme='dark'] .fac-dash-encourage-card {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+}
+
+[data-theme='dark'] .fac-dash-hero {
+  border-color: #1E293B !important;
+}
+
+/* Responsive Overrides */
+@media (max-width: 960px) {
+  .fac-dash-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .fac-dash-progress-row {
+    grid-template-columns: 1fr !important;
+  }
+  .fac-dash-quote {
+    display: none !important;
+  }
+  .topbar-search-bar {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .fac-dash-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .fac-dash-root {
+    padding: 14px 12px !important;
+  }
+}
