@@ -7,8 +7,9 @@ class DashboardResponseDto {
     this.partiallyCheckedPapersCount = data.partiallyCheckedPapersCount;
     this.notCheckedPapersCount = data.notCheckedPapersCount;
     this.facultyProgress = data.facultyProgress || [];
+    this.examOverview = data.examOverview || [];
+    this.recentActivity = data.recentActivity || [];
   }
 }
 
 module.exports = DashboardResponseDto;
-
