@@ -1,4 +1,5 @@
 const express = require('express');
+const AppError = require('../exceptions/AppError');
 const facultyService = require('../services/FacultyService');
 const facultyEvaluationService = require('../services/FacultyEvaluationService');
 const facultyAuthMiddleware = require('../middleware/facultyAuthMiddleware');

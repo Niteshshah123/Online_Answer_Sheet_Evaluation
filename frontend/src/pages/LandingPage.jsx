@@ -2,28 +2,13 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
-/* ── Amrita Kalash / Emblem Logo ── */
+/* ── Amrita Logo ── */
 const AmritaEmblem = () => (
-  <svg width="38" height="38" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" stroke="#991B1B" strokeWidth="3" fill="#FFF5F5" />
-    <circle cx="50" cy="50" r="42" stroke="#991B1B" strokeWidth="1.2" strokeDasharray="3 2" fill="none" />
-    {/* Kalash Base */}
-    <path d="M35 72h30c-2-8-6-14-15-14s-13 6-15 14z" fill="#991B1B" />
-    <rect x="33" y="72" width="34" height="4" rx="2" fill="#991B1B" />
-    {/* Kalash Pot Body */}
-    <path d="M32 54c-6 8-4 15 3 18h30c7-3 9-10 3-18-4-5-8-7-18-7s-14 2-18 7z" fill="#991B1B" />
-    {/* Neck & Rim */}
-    <ellipse cx="50" cy="46" rx="14" ry="3" fill="#991B1B" />
-    <path d="M40 46c0-3 3-5 10-5s10 2 10 5" stroke="#991B1B" strokeWidth="2" fill="none" />
-    {/* Coconut & Mango Leaves */}
-    <path d="M42 43c-6-6-10-8-16-7 4 4 8 8 11 11" stroke="#991B1B" strokeWidth="2" fill="#991B1B" />
-    <path d="M58 43c6-6 10-8 16-7-4 4-8 8-11 11" stroke="#991B1B" strokeWidth="2" fill="#991B1B" />
-    <path d="M50 42c0-8-4-14-10-17 3 5 5 11 5 17" stroke="#991B1B" strokeWidth="1.5" fill="#991B1B" />
-    <path d="M50 42c0-8 4-14 10-17-3 5-5 11-5 17" stroke="#991B1B" strokeWidth="1.5" fill="#991B1B" />
-    {/* Flame / Diya Top */}
-    <path d="M50 21c-3 4-5 7-5 11a5 5 0 0 0 10 0c0-4-2-7-5-11z" fill="#C9A84C" />
-    <circle cx="50" cy="30" r="2" fill="#FFF" />
-  </svg>
+  <img
+    src="/uploads/images/logo.png"
+    alt="Amrita Logo"
+    className="lp-brand-logo-img"
+  />
 );
 
 /* ── Golden Lotus Icon for Trust Bar ── */

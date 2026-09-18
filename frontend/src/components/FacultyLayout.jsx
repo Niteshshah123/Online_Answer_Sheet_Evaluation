@@ -64,13 +64,11 @@ const NAV_SECTIONS = [
 ];
 
 const AmritaLogoMark = () => (
-  <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="46" stroke="#C9A84C" strokeWidth="3" fill="#1E3A5F" />
-    <path d="M32 54c-6 8-4 15 3 18h30c7-3 9-10 3-18-4-5-8-7-18-7s-14 2-18 7z" fill="#C9A84C" />
-    <ellipse cx="50" cy="46" rx="14" ry="3" fill="#C9A84C" />
-    <path d="M50 21c-3 4-5 7-5 11a5 5 0 0 0 10 0c0-4-2-7-5-11z" fill="#C9A84C" />
-    <circle cx="50" cy="30" r="2.5" fill="#FFF" />
-  </svg>
+  <img
+    src="/uploads/images/logo.png"
+    alt="Amrita Logo"
+    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+  />
 );
 
 const GoldenLotus = () => (
@@ -104,7 +102,7 @@ export default function FacultyLayout() {
     }).then(r => {
       if (r.data.data?.name) setFacultyName(r.data.data.name);
       if (r.data.data?.email) setFacultyEmail(r.data.data.email);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -201,11 +199,11 @@ export default function FacultyLayout() {
             <div className="sidebar-brand-sub" style={{ color: '#C9A84C' }}>Examination Cell</div>
           </div>
           <button className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
           <button className="sidebar-collapse-btn" onClick={() => setCollapsed(c => !c)} aria-label="Toggle sidebar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              {collapsed ? <polyline points="9 18 15 12 9 6"/> : <polyline points="15 18 9 12 15 6"/>}
+              {collapsed ? <polyline points="9 18 15 12 9 6" /> : <polyline points="15 18 9 12 15 6" />}
             </svg>
           </button>
         </div>
@@ -281,13 +279,13 @@ export default function FacultyLayout() {
       ───────────────────────────────────────── */}
       <div className="main-content">
         <header className="topbar">
-          {/* Topbar Left: Title + Subtitle */}
+          {/* Topbar Left: Mobile Sidebar Toggle, Title, Subtitle, Search Bar */}
           <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Open sidebar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Open sidebar">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
               </svg>
-            </button> */}
+            </button>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
@@ -319,8 +317,22 @@ export default function FacultyLayout() {
             </div>
           </div>
 
-          {/* Topbar Right: Theme Toggle, Bell, User Profile */}
+          {/* Topbar Right: Calendar & Tasks, Theme Toggle, Bell, User Profile */}
           <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="topbar-cal-wrap" ref={calRef}>
+              <button
+                className={`topbar-icon-btn topbar-icon-btn-clickable${calOpen ? ' active' : ''}`}
+                onClick={() => setCalOpen(o => !o)}
+                title="Calendar & Tasks"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
+                <span className="topbar-icon-label">{new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+              </button>
+              {calOpen && <CalendarPanel onClose={() => setCalOpen(false)} />}
+            </div>
+
+            <div className="topbar-divider" />
+
             {/* Theme toggle */}
             <button
               className="topbar-icon-btn topbar-icon-btn-clickable"
@@ -328,8 +340,8 @@ export default function FacultyLayout() {
               title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
               {dark
-                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" /></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
               }
             </button>
 
@@ -389,16 +401,16 @@ export default function FacultyLayout() {
                   </div>
                   <div className="topbar-dropdown-divider" />
                   <button className="topbar-dropdown-item" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                     Edit Profile
                   </button>
                   <button className="topbar-dropdown-item" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                     Change Password
                   </button>
                   <div className="topbar-dropdown-divider" />
                   <button className="topbar-dropdown-item topbar-dropdown-item-danger" onClick={() => { setMenuOpen(false); logout(); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
                     Sign Out
                   </button>
                 </div>
