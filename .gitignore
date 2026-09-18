@@ -25,6 +25,5 @@ pnpm-debug.log*
 .idea/
 
 # Uploaded/generated content
-public/uploads/
-uploads/
+public/uploads/pdfs
 
