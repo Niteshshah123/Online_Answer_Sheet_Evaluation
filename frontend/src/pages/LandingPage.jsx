@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 
 /* ── Amrita Logo ── */
@@ -26,21 +25,6 @@ export default function LandingPage() {
   const theme = useTheme();
   const dark = theme?.dark ?? false;
   const toggleTheme = theme?.toggle ?? (() => {});
-
-  // Active session check
-  const [activeAdmin, setActiveAdmin] = useState(false);
-  const [activeFaculty, setActiveFaculty] = useState(false);
-  const [activeStudent, setActiveStudent] = useState(false);
-
-  useEffect(() => {
-    try {
-      setActiveAdmin(Boolean(localStorage.getItem('adminToken')));
-      setActiveFaculty(Boolean(localStorage.getItem('facultyToken')));
-      setActiveStudent(Boolean(localStorage.getItem('studentToken')));
-    } catch {
-      // storage unavailable
-    }
-  }, []);
 
   return (
     <div className="landing-root">
@@ -86,24 +70,6 @@ export default function LandingPage() {
           </div>
         </div>
       </header>
-
-      {/* ─────────────────────────────────────────
-          ACTIVE SESSION BAR (IF LOGGED IN)
-      ───────────────────────────────────────── */}
-      {(activeAdmin || activeFaculty || activeStudent) && (
-        <div className="gov-active-bar">
-          <div className="lp-header-container gov-active-inner">
-            <span className="gov-active-msg">
-              <strong>Active Session:</strong> You are currently logged into an account.
-            </span>
-            <div className="gov-active-links">
-              {activeAdmin && <Link to="/dashboard" className="gov-active-link">Admin Dashboard →</Link>}
-              {activeFaculty && <Link to="/faculty/dashboard" className="gov-active-link">Faculty Workplace →</Link>}
-              {activeStudent && <Link to="/student/dashboard" className="gov-active-link">Student Portal →</Link>}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* ─────────────────────────────────────────
           HERO SECTION WITH CAMPUS IMAGE

@@ -224,30 +224,6 @@ export default function FacultyAssignmentsPage() {
   }, [items, searchQuery, filterCourse, filterSubject, filterSemester, filterSection, filterStatus]);
 
   // ----------------------------------------------------
-  // Summary Metrics Calculation
-  // ----------------------------------------------------
-  const summaryMetrics = useMemo(() => {
-    const totalAssigned = items.length;
-    const completedCount = items.filter(i => i.status === 'COMPLETED' || i.status === 'LOCKED').length;
-    const pendingCount = items.filter(i => i.status === 'PENDING').length;
-    const draftCount = items.filter(i => i.status === 'DRAFT' || i.status === 'IN_PROGRESS' || i.status === 'UNLOCK_REQUESTED').length;
-
-    const uniqueDepts = new Set(items.map(i => i.course).filter(Boolean)).size;
-    const uniqueSubs = new Set(items.map(i => i.subject).filter(Boolean)).size;
-    const uniqueExams = new Set(items.map(i => i.examId?.toString()).filter(Boolean)).size;
-
-    return {
-      totalAssigned,
-      completedCount,
-      pendingCount,
-      draftCount,
-      uniqueDepts,
-      uniqueSubs,
-      uniqueExams
-    };
-  }, [items]);
-
-  // ----------------------------------------------------
   // Hierarchical Grouping: Department -> Subject -> Exam Cohorts
   // ----------------------------------------------------
   const hierarchicalData = useMemo(() => {
@@ -354,84 +330,11 @@ export default function FacultyAssignmentsPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-      {/* Page Header */}
-      <div className="page-header" style={{ marginBottom: 0 }}>
-        <h1>Assigned Valuation Tasks &amp; Course In-Charge Portal</h1>
-        <p>Hierarchical oversight of assigned student answer sheets, grading progress, publishing for student review, and submitting final marks to Admin.</p>
-      </div>
-
       {actionMessage && <div className="alert alert-success">{actionMessage}</div>}
       {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
       {/* ────────────────────────────────────────────────────────
-          1. TOP SUMMARY METRIC CARDS
-         ──────────────────────────────────────────────────────── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-        {/* Total Assigned */}
-        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid var(--amrita-maroon)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Total Assigned Scripts
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '2px 0', lineHeight: 1.1 }}>
-            {summaryMetrics.totalAssigned}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Across {summaryMetrics.uniqueExams} cohort section(s)
-          </div>
-        </div>
-
-        {/* Evaluation Progress */}
-        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #16a34a', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Valuation Completed
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '2px 0', lineHeight: 1.1 }}>
-            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a' }}>
-              {summaryMetrics.completedCount}
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              / {summaryMetrics.totalAssigned} Scripts
-            </span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: '#16a34a', fontWeight: 700 }}>
-            {summaryMetrics.totalAssigned ? Math.round((summaryMetrics.completedCount / summaryMetrics.totalAssigned) * 100) : 0}% Valuation Finished
-          </div>
-        </div>
-
-        {/* In Progress / Pending */}
-        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #d97706', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Pending &amp; In-Progress
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', margin: '2px 0', lineHeight: 1.1 }}>
-            <span style={{ fontSize: '1.6rem', fontWeight: 800, color: '#d97706' }}>
-              {summaryMetrics.pendingCount + summaryMetrics.draftCount}
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-              Remaining
-            </span>
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            <strong style={{ color: '#d97706' }}>{summaryMetrics.draftCount}</strong> Draft &nbsp;·&nbsp; <strong>{summaryMetrics.pendingCount}</strong> Pending
-          </div>
-        </div>
-
-        {/* Academic Scope */}
-        <div className="card" style={{ padding: '14px 16px', borderLeft: '4px solid #2563eb', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Active Curricula
-          </div>
-          <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#2563eb', margin: '2px 0', lineHeight: 1.1 }}>
-            {summaryMetrics.uniqueSubs}
-          </div>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-            Subject(s) across {summaryMetrics.uniqueDepts} Department(s)
-          </div>
-        </div>
-      </div>
-
-      {/* ────────────────────────────────────────────────────────
-          2. COMPACT MODERN FILTER & SEARCH TOOLBAR
+          COMPACT MODERN FILTER & SEARCH TOOLBAR
          ──────────────────────────────────────────────────────── */}
       <div className="filter-toolbar">
         {/* Top Row: Search input + View Switcher */}
