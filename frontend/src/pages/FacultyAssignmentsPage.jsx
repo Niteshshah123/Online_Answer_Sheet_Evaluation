@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const STATUS_CONFIG = {
@@ -84,6 +84,7 @@ export default function FacultyAssignmentsPage() {
   const [actionMessage, setActionMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -112,6 +113,13 @@ export default function FacultyAssignmentsPage() {
   };
 
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setActionMessage(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
 
   const toggleGroupCollapse = (key) => {
     setCollapsedGroups(prev => ({

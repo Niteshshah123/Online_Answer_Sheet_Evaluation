@@ -187,8 +187,10 @@ export default function FacultyEvaluationPage() {
         { updates: rows.map(r => ({ evaluationId: r.evaluationId, marksObtained: r.marksObtained, review: r.review })) },
         { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
       );
-      setMessage('Saved successfully.');
-      await load();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      navigate('/faculty/assignments', { state: { message: 'Draft saved successfully.' } });
     } catch (err) { setErrorMessage(err.response?.data?.message || 'Unable to save.'); }
   };
 
@@ -201,8 +203,10 @@ export default function FacultyEvaluationPage() {
         { updates: rows.map(r => ({ evaluationId: r.evaluationId, marksObtained: r.marksObtained, review: r.review })) },
         { headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` } }
       );
-      setMessage('Valuation completed successfully.');
-      await load();
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+      navigate('/faculty/assignments', { state: { message: 'Valuation completed successfully.' } });
     } catch (err) { setErrorMessage(err.response?.data?.message || 'Unable to complete evaluation.'); }
   };
 
