@@ -2651,7 +2651,7 @@ input, select, textarea { color: var(--text-primary); }
 .lp-trust-section {
   background: #FFFFFF;
   border-top: 1px solid #E2E8F0;
-  padding: 16px 0;
+  padding: 10px 0;
   position: relative;
   overflow: hidden;
 }
@@ -2659,7 +2659,8 @@ input, select, textarea { color: var(--text-primary); }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 16px;
+  min-height: 72px;
 }
 .lp-trust-values {
   display: flex;
@@ -2676,8 +2677,8 @@ input, select, textarea { color: var(--text-primary); }
   flex-shrink: 0;
 }
 .lp-val-icon-wrap {
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2701,24 +2702,27 @@ input, select, textarea { color: var(--text-primary); }
 }
 .lp-val-divider {
   width: 1px;
-  height: 20px;
+  height: 24px;
   background: #E2E8F0;
   flex-shrink: 0;
 }
 .lp-trust-sketch-area {
   flex-shrink: 0;
-  width: clamp(120px, 15vw, 220px);
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  height: 70px;
+  width: clamp(170px, 19vw, 250px);
 }
 .lp-trust-watermark-img {
   width: 100%;
-  max-width: 220px;
-  height: auto;
-  max-height: 46px;
+  max-width: 250px;
+  height: 100%;
+  max-height: 68px;
   object-fit: contain;
-  opacity: 0.8;
+  opacity: 0.95;
+  filter: contrast(1.15) brightness(0.98);
+  transition: opacity 0.2s ease, filter 0.2s ease;
 }
 
 /* ── Footer ── */
@@ -2807,8 +2811,8 @@ input, select, textarea { color: var(--text-primary); }
 [data-theme='dark'] .lp-val-sub { color: #94A3B8; }
 [data-theme='dark'] .lp-val-divider { background: #1E293B; }
 [data-theme='dark'] .lp-trust-watermark-img {
-  opacity: 0.35;
-  filter: invert(0.85);
+  opacity: 0.75;
+  filter: invert(0.9) brightness(1.2) contrast(1.15);
 }
 
 /* ── Responsive Queries ── */
@@ -2847,9 +2851,13 @@ input, select, textarea { color: var(--text-primary); }
   }
   .lp-trust-sketch-area {
     width: 100%;
-    max-width: 200px;
+    height: 56px;
+    max-width: 220px;
     justify-content: center;
-    margin-top: 4px;
+    margin-top: 6px;
+  }
+  .lp-trust-watermark-img {
+    max-height: 54px;
   }
 }
 
