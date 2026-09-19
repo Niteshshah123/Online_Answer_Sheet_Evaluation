@@ -74,36 +74,49 @@ class ImportService {
   }
 
   async ensureStudent(row) {
-    let student = await StudentRepository.findByRegistrationNumber(row.registrationNumber);
+    const regNo = String(row.registrationNumber || '').trim();
+    const email = `${regNo.toLowerCase()}@ch.students.amrita.edu`;
+    let student = await StudentRepository.findByRegistrationNumber(regNo);
+
     if (!student) {
       student = await StudentRepository.create({
-        registrationNumber: row.registrationNumber,
-        name: row.studentName,
-        email: row.studentEmail || ''
+        registrationNumber: regNo,
+        name: row.studentName || `Student ${regNo}`,
+        email: email
       });
     } else {
       if (row.studentName) student.name = row.studentName;
-      if (row.studentEmail) student.email = row.studentEmail;
+      student.email = email;
       await student.save();
     }
 
-    if (row.studentEmail) {
-      const normalizedEmail = String(row.studentEmail).trim().toLowerCase();
-      let user = await User.findOne({ email: normalizedEmail });
-      if (!user) {
-        const pass = 'std123';
-        const hashedPassword = await bcrypt.hash(pass, 10);
-        user = await User.create({
-          role: 'STUDENT',
-          email: normalizedEmail,
-          password: hashedPassword,
-          name: row.studentName
-        });
-      }
-      student.email = normalizedEmail;
-      student.userId = user._id;
-      await student.save();
+    let user = null;
+    if (student.userId) {
+      user = await User.findById(student.userId);
     }
+    if (!user) {
+      user = await User.findOne({ email });
+    }
+
+    if (!user) {
+      const pass = 'std123';
+      const hashedPassword = await bcrypt.hash(pass, 10);
+      user = await User.create({
+        role: 'STUDENT',
+        email: email,
+        password: hashedPassword,
+        name: row.studentName || student.name
+      });
+    } else {
+      user.email = email;
+      if (row.studentName) user.name = row.studentName;
+      user.role = 'STUDENT';
+      await user.save();
+    }
+
+    student.email = email;
+    student.userId = user._id;
+    await student.save();
 
     return student;
   }

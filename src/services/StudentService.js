@@ -44,9 +44,28 @@ function buildReportSummary(evaluations, questionWeightage = []) {
 }
 
 class StudentService {
-  async login(email, password) {
-    const normalizedEmail = normalizeEmail(email);
-    const user = await User.findOne({ email: normalizedEmail, role: 'STUDENT' });
+  async login(identifier, password) {
+    const raw = String(identifier || '').trim();
+    const normalized = raw.toLowerCase();
+    const derivedEmail = normalized.includes('@') ? normalized : `${normalized}@ch.students.amrita.edu`;
+
+    let user = await User.findOne({
+      role: 'STUDENT',
+      $or: [
+        { email: normalized },
+        { email: derivedEmail }
+      ]
+    });
+
+    if (!user) {
+      const student = await StudentRepository.findByRegistrationNumber(raw);
+      if (student && student.userId) {
+        user = await User.findById(student.userId);
+      } else if (student && student.email) {
+        user = await User.findOne({ email: normalizeEmail(student.email), role: 'STUDENT' });
+      }
+    }
+
     if (!user) {
       throw new AppError('Invalid credentials', 401);
     }
@@ -72,7 +91,7 @@ class StudentService {
       throw new AppError('Student not found', 404);
     }
 
-    const student = await StudentRepository.findByEmail(normalizedEmail);
+    const student = await StudentRepository.findByEmailOrUserId(normalizedEmail, user._id);
     if (!student) {
       return { studentName: user.name, papers: [] };
     }
@@ -105,6 +124,7 @@ class StudentService {
 
     return {
       studentName: student.name || user.name,
+      registrationNumber: student.registrationNumber || '',
       papers
     };
   }
@@ -122,7 +142,7 @@ class StudentService {
     }
 
     const student = await StudentRepository.findById(sheet.studentId);
-    if (!student || normalizeEmail(student.email) !== normalizedEmail) {
+    if (!student || (normalizeEmail(student.email) !== normalizedEmail && String(student.userId) !== String(user._id))) {
       throw new AppError('Access denied', 403);
     }
 
