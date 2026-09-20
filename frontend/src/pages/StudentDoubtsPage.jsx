@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const CATEGORY_MAP = {
-  DOUBT: { label: 'Question Doubt', bg: '#EFF6FF', color: '#1D4ED8', border: '#BFDBFE' },
-  MARKS_CALCULATION: { label: 'Marks Calculation', bg: '#FEF3C7', color: '#B45309', border: '#FDE68A' },
-  UNCHECKED_PART: { label: 'Unchecked Step/Part', bg: '#FDF2F8', color: '#BE185D', border: '#FBCFE8' },
-  REEVALUATION: { label: 'Re-evaluation Request', bg: '#F5F3FF', color: '#6D28D9', border: '#DDD6FE' },
-  OTHER: { label: 'General Query', bg: '#F1F5F9', color: '#475569', border: '#CBD5E1' }
+  DOUBT: { label: 'Question Doubt', bg: 'rgba(56, 189, 248, 0.12)', color: '#0284C7', border: 'rgba(56, 189, 248, 0.28)' },
+  MARKS_CALCULATION: { label: 'Marks Calculation', bg: 'rgba(245, 158, 11, 0.12)', color: '#D97706', border: 'rgba(245, 158, 11, 0.28)' },
+  UNCHECKED_PART: { label: 'Unchecked Step/Part', bg: 'rgba(236, 72, 153, 0.12)', color: '#DB2777', border: 'rgba(236, 72, 153, 0.28)' },
+  REEVALUATION: { label: 'Re-evaluation Request', bg: 'rgba(139, 92, 246, 0.12)', color: '#7C3AED', border: 'rgba(139, 92, 246, 0.28)' },
+  OTHER: { label: 'General Query', bg: 'rgba(148, 163, 184, 0.12)', color: '#64748B', border: 'rgba(148, 163, 184, 0.28)' }
 };
 
 export default function StudentDoubtsPage() {
@@ -89,7 +89,7 @@ export default function StudentDoubtsPage() {
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}>
       {/* Alert message */}
       {msg && (
-        <div style={{
+        <div className={`alert alert-${msg.type === 'success' ? 'success' : 'error'}`} style={{
           padding: '12px 16px',
           borderRadius: '10px',
           marginBottom: '20px',
@@ -97,10 +97,7 @@ export default function StudentDoubtsPage() {
           fontWeight: 600,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          background: msg.type === 'success' ? '#ECFDF5' : '#FEF2F2',
-          color: msg.type === 'success' ? '#065F46' : '#991B1B',
-          border: `1px solid ${msg.type === 'success' ? '#A7F3D0' : '#FECACA'}`
+          justifyContent: 'space-between'
         }}>
           <span>{msg.text}</span>
           <button onClick={() => setMsg(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700 }}>✕</button>
@@ -121,7 +118,7 @@ export default function StudentDoubtsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px', marginBottom: '24px' }}>
         <div style={{
           background: 'var(--bg-white)', padding: '16px 20px', borderRadius: '12px',
-          border: '1px solid var(--border)', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)'
         }}>
           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Total Raised Doubts
@@ -133,24 +130,24 @@ export default function StudentDoubtsPage() {
 
         <div style={{
           background: 'var(--bg-white)', padding: '16px 20px', borderRadius: '12px',
-          border: '1px solid #FEF3C7', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          border: '1px solid var(--warning-border)', boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#D97706', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Awaiting Teacher Reply
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#B45309', marginTop: '4px' }}>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--warning)', marginTop: '4px' }}>
             {pendingCount}
           </div>
         </div>
 
         <div style={{
           background: 'var(--bg-white)', padding: '16px 20px', borderRadius: '12px',
-          border: '1px solid #D1FAE5', boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+          border: '1px solid var(--success-border)', boxShadow: 'var(--shadow-sm)'
         }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Resolved by Evaluator
           </div>
-          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: '#047857', marginTop: '4px' }}>
+          <div style={{ fontSize: '1.65rem', fontWeight: 800, color: 'var(--success)', marginTop: '4px' }}>
             {resolvedCount}
           </div>
         </div>
@@ -225,7 +222,7 @@ export default function StudentDoubtsPage() {
       {/* Doubts List */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
-          <div className="spinner" style={{ margin: '0 auto 12px' }} />
+          <div className="dash-loading-spinner" style={{ margin: '0 auto 12px' }} />
           Loading your doubt submissions...
         </div>
       ) : filteredDoubts.length === 0 ? (
@@ -264,7 +261,7 @@ export default function StudentDoubtsPage() {
                   borderRadius: '12px',
                   border: '1px solid var(--border)',
                   padding: '18px 20px',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+                  boxShadow: 'var(--shadow-sm)',
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -272,7 +269,8 @@ export default function StudentDoubtsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                     <span style={{
-                      background: '#1E3A5F', color: '#FFFFFF',
+                      background: 'rgba(56, 189, 248, 0.14)', color: '#38BDF8',
+                      border: '1px solid rgba(56, 189, 248, 0.3)',
                       fontSize: '0.75rem', fontWeight: 800, padding: '3px 9px',
                       borderRadius: '6px', letterSpacing: '0.02em'
                     }}>
@@ -298,12 +296,7 @@ export default function StudentDoubtsPage() {
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{
-                      fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '20px',
-                      background: isResolved ? '#DCFCE7' : '#FEF3C7',
-                      color: isResolved ? '#15803D' : '#B45309',
-                      border: `1px solid ${isResolved ? '#BBF7D0' : '#FDE68A'}`
-                    }}>
+                    <span className={`badge ${isResolved ? 'badge-green' : 'badge-amber'}`} style={{ padding: '3px 10px', borderRadius: '20px' }}>
                       {isResolved ? '✓ RESOLVED' : '⏳ PENDING'}
                     </span>
 
@@ -319,7 +312,7 @@ export default function StudentDoubtsPage() {
                   padding: '12px 14px',
                   borderRadius: '8px',
                   marginBottom: '12px',
-                  border: '1px solid rgba(0,0,0,0.04)'
+                  border: '1px solid var(--border)'
                 }}>
                   <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>
                     Your Query:
@@ -332,28 +325,28 @@ export default function StudentDoubtsPage() {
                 {/* Evaluator Response (if resolved/replied) */}
                 {doubt.teacherReply ? (
                   <div style={{
-                    background: '#F0FDF4',
-                    border: '1px solid #BBF7D0',
+                    background: 'var(--success-bg)',
+                    border: '1px solid var(--success-border)',
                     borderRadius: '8px',
                     padding: '12px 14px',
                     marginBottom: '10px'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#166534', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span>✓ EVALUATOR RESPONSE ({cleanEvaluator}):</span>
                       </div>
                       {doubt.resolvedAt && (
-                        <div style={{ fontSize: '0.7rem', color: '#15803D', fontWeight: 600 }}>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--success)', fontWeight: 600 }}>
                           {new Date(doubt.resolvedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </div>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.86rem', color: '#14532D', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                    <div style={{ fontSize: '0.86rem', color: 'var(--text-primary)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                       {doubt.teacherReply}
                     </div>
                   </div>
                 ) : (
-                  <div style={{ fontSize: '0.78rem', color: '#B45309', marginBottom: '10px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--warning)', marginBottom: '10px', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span>⏳ Awaiting teacher review and response. Evaluator will verify your answers against the answer scheme.</span>
                   </div>
                 )}

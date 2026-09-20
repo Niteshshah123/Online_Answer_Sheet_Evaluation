@@ -757,7 +757,7 @@ export default function ExamsPage() {
                           <div
                             style={{
                               padding: '10px 16px',
-                              background: '#f8fafc',
+                              background: 'var(--bg-subtle)',
                               borderBottom: isSubCollapsed ? 'none' : '1px solid var(--border)',
                               cursor: 'pointer',
                               display: 'flex',
@@ -785,7 +785,7 @@ export default function ExamsPage() {
 
                           {/* Level 3: Individual Exam Cards Grid */}
                           {!isSubCollapsed && (
-                            <div style={{ padding: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '14px', background: 'white' }}>
+                            <div style={{ padding: '14px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '14px', background: 'var(--bg-white)' }}>
                               {sub.exams.map(exam => {
                                 const totalRaw = (exam.questionWeightage || []).reduce((a, b) => a + b, 0);
                                 const isSelected = selectedExams.has(exam._id);

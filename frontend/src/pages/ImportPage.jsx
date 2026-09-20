@@ -556,21 +556,21 @@ export default function ImportPage() {
                   {/* Summary Metric Badges */}
                   {stagedSummary && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
-                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase' }}>Students to Import</div>
-                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#1e3a5f' }}>{stagedData.rows.length}</div>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-accent, #38bdf8)', textTransform: 'uppercase' }}>Students to Import</div>
+                        <div style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--text-primary)' }}>{stagedData.rows.length}</div>
                       </div>
 
-                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#166534', textTransform: 'uppercase' }}>Subjects / Exams</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#166534', marginTop: '4px' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: 'var(--success-bg)', border: '1px solid var(--success-border)' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase' }}>Subjects / Exams</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--success)', marginTop: '4px' }}>
                           {stagedSummary.subjects.join(', ') || 'N/A'}
                         </div>
                       </div>
 
-                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: '#fffbeb', border: '1px solid #fde68a' }}>
-                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>Faculty Evaluators</div>
-                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#92400e', marginTop: '4px' }}>
+                      <div style={{ padding: '12px 14px', borderRadius: 'var(--radius)', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)' }}>
+                        <div style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--warning)', textTransform: 'uppercase' }}>Faculty Evaluators</div>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--warning)', marginTop: '4px' }}>
                           {stagedSummary.faculty.join(', ') || 'N/A'}
                         </div>
                       </div>
@@ -603,7 +603,7 @@ export default function ImportPage() {
                               </div>
                             </div>
                             {row.answerSheetPdfLink && (
-                              <span style={{ fontSize: '0.7rem', color: '#166534', background: '#f0fdf4', padding: '2px 6px', borderRadius: '3px', border: '1px solid #bbf7d0' }}>
+                              <span style={{ fontSize: '0.7rem', color: 'var(--success)', background: 'var(--success-bg)', padding: '2px 6px', borderRadius: '3px', border: '1px solid var(--success-border)' }}>
                                 PDF Attached
                               </span>
                             )}
@@ -1075,10 +1075,10 @@ export default function ImportPage() {
           {showAddRowsModal && (
             <div style={{
               position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-              background: 'rgba(0,0,0,0.5)', zIndex: 999, display: 'flex',
-              alignItems: 'center', justifyContent: 'center'
+              background: 'rgba(0,0,0,0.6)', zIndex: 999, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)'
             }}>
-              <div className="card" style={{ width: '380px', padding: '20px', background: 'white', borderRadius: 'var(--radius)' }}>
+              <div className="card" style={{ width: '380px', padding: '20px', background: 'var(--bg-white)', border: '1px solid var(--border)', borderRadius: 'var(--radius)' }}>
                 <h3 style={{ fontSize: '1rem', marginBottom: '8px' }}>Add Rows to Table</h3>
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                   How many rows would you like to add?

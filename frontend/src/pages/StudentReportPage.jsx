@@ -10,17 +10,17 @@ function resolvePdfUrl(url) {
 }
 
 const statusCfg = (s) => {
-  if (s === 'LOCKED')   return { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', dot: '#16a34a' };
-  if (s === 'DRAFT')    return { bg: '#fffbeb', color: '#92400e', border: '#fde68a', dot: '#d97706' };
-  if (s === 'PENDING')  return { bg: '#f3f4f6', color: '#374151', border: '#e5e7eb', dot: '#6b7280' };
-  return                       { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', dot: '#2563eb' };
+  if (s === 'LOCKED')   return { bg: 'var(--success-bg)', color: 'var(--success)', border: 'var(--success-border)', dot: '#16a34a' };
+  if (s === 'DRAFT')    return { bg: 'var(--warning-bg)', color: 'var(--warning)', border: 'var(--warning-border)', dot: '#d97706' };
+  if (s === 'PENDING')  return { bg: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: 'var(--border)', dot: '#6b7280' };
+  return                       { bg: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)', dot: '#38bdf8' };
 };
 
 const doubtStatusCfg = (s) => {
-  if (s === 'RESOLVED') return { bg: '#ecfdf5', color: '#047857', border: '#a7f3d0', label: 'Resolved' };
-  if (s === 'REJECTED') return { bg: '#fef2f2', color: '#b91c1c', border: '#fecaca', label: 'Reviewed' };
-  if (s === 'IN_REVIEW') return { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe', label: 'In Review' };
-  return { bg: '#fffbeb', color: '#b45309', border: '#fde68a', label: 'Hand Raised (Pending)' };
+  if (s === 'RESOLVED') return { bg: 'var(--success-bg)', color: 'var(--success)', border: 'var(--success-border)', label: 'Resolved' };
+  if (s === 'REJECTED') return { bg: 'var(--error-bg)', color: 'var(--error)', border: 'var(--error-border)', label: 'Reviewed' };
+  if (s === 'IN_REVIEW') return { bg: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)', label: 'In Review' };
+  return { bg: 'var(--warning-bg)', color: 'var(--warning)', border: 'var(--warning-border)', label: 'Hand Raised (Pending)' };
 };
 
 export default function StudentReportPage() {
@@ -227,7 +227,7 @@ export default function StudentReportPage() {
               {[['sheet', 'Answer Sheet (Evaluated)'], ['key', 'Answer Key & Scheme']].map(([tab, label]) => (
                 <button key={tab} onClick={() => setPdfTab(tab)} style={{
                   flex: 1, padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700,
-                  background: pdfTab === tab ? '#fff' : '#f8fafc', border: 'none', cursor: 'pointer',
+                  background: pdfTab === tab ? 'var(--bg-white)' : 'var(--bg-subtle)', border: 'none', cursor: 'pointer',
                   borderBottom: `3px solid ${pdfTab === tab ? 'var(--amrita-maroon)' : 'transparent'}`,
                   color: pdfTab === tab ? 'var(--amrita-maroon)' : 'var(--text-muted)',
                   transition: 'all 0.15s ease',
@@ -235,7 +235,7 @@ export default function StudentReportPage() {
               ))}
             </div>
           </div>
-          <div style={{ height: '560px', background: '#2c3038', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ height: '560px', background: '#1e2530', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {(pdfTab === 'sheet' ? sheetUrl : keyUrl) ? (
               <iframe
                 title={pdfTab}
@@ -322,10 +322,10 @@ export default function StudentReportPage() {
                             style={{
                               padding: '3px 8px',
                               fontSize: '0.72rem',
-                              color: '#1E3A5F',
+                              color: 'var(--accent)',
                               fontWeight: 600,
-                              background: '#f0f4f8',
-                              border: '1px solid #d0dbe7',
+                              background: 'var(--accent-light)',
+                              border: '1px solid var(--accent-border)',
                               borderRadius: '6px',
                               cursor: 'pointer'
                             }}
@@ -398,7 +398,7 @@ export default function StudentReportPage() {
                     border: '1px solid var(--border)',
                     borderRadius: '8px',
                     padding: '14px 16px',
-                    background: '#fff',
+                    background: 'var(--bg-white)',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
                   }}
                 >
@@ -436,7 +436,7 @@ export default function StudentReportPage() {
                   </div>
 
                   {/* Student Comment */}
-                  <div style={{ background: '#f8fafc', padding: '10px 12px', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: d.teacherReply ? '10px' : '0' }}>
+                  <div style={{ background: 'var(--bg-subtle)', padding: '10px 12px', borderRadius: '6px', fontSize: '0.8rem', color: 'var(--text-primary)', marginBottom: d.teacherReply ? '10px' : '0' }}>
                     <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '3px', textTransform: 'uppercase' }}>
                       Your Query:
                     </div>
@@ -446,23 +446,24 @@ export default function StudentReportPage() {
                   {/* Teacher Reply */}
                   {d.teacherReply ? (
                     <div style={{
-                      background: '#f0fdf4',
-                      border: '1px solid #bbf7d0',
+                      marginTop: '8px',
+                      background: 'var(--success-bg)',
+                      border: '1px solid var(--success-border)',
                       padding: '10px 14px',
                       borderRadius: '6px',
                       fontSize: '0.8rem',
-                      color: '#166534'
+                      color: 'var(--text-primary)'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#15803d' }}>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--success)' }}>
                           ✓ Evaluator Reply ({cleanEvaluator}):
                         </span>
-                        {resolvedDate && <span style={{ fontSize: '0.68rem', color: '#166534' }}>{resolvedDate}</span>}
+                        {resolvedDate && <span style={{ fontSize: '0.68rem', color: 'var(--success)' }}>{resolvedDate}</span>}
                       </div>
                       <div style={{ fontWeight: 500 }}>{d.teacherReply}</div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--warning)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span>⏳</span>
                       <span>Assigned to <strong>{cleanEvaluator}</strong>. Waiting for review and response.</span>
                     </div>
@@ -479,8 +480,8 @@ export default function StudentReportPage() {
         <div style={{
           position: 'fixed',
           inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(3px)',
+          background: 'rgba(0,0,0,0.65)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -488,11 +489,12 @@ export default function StudentReportPage() {
           padding: '16px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--bg-white)',
+            border: '1px solid var(--border)',
             borderRadius: '12px',
             width: '100%',
             maxWidth: '480px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)',
+            boxShadow: 'var(--shadow-lg)',
             overflow: 'hidden'
           }}>
             <div style={{
@@ -520,13 +522,13 @@ export default function StudentReportPage() {
 
             <form onSubmit={handleRaiseSubmit} style={{ padding: '20px' }}>
               {doubtSuccessMessage && (
-                <div style={{ background: '#ecfdf5', color: '#065f46', border: '1px solid #a7f3d0', padding: '10px 12px', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '14px' }}>
+                <div className="alert alert-success" style={{ marginBottom: '14px' }}>
                   ✓ {doubtSuccessMessage}
                 </div>
               )}
 
               {doubtErrorMessage && (
-                <div style={{ background: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca', padding: '10px 12px', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '14px' }}>
+                <div className="alert alert-error" style={{ marginBottom: '14px' }}>
                   ⚠ {doubtErrorMessage}
                 </div>
               )}
@@ -539,13 +541,8 @@ export default function StudentReportPage() {
                 <select
                   value={selectedQuestion}
                   onChange={(e) => setSelectedQuestion(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    fontSize: '0.82rem'
-                  }}
+                  className="form-control"
+                  style={{ width: '100%', fontSize: '0.82rem' }}
                 >
                   <option value="">General Query (Entire Paper / Totaling)</option>
                   {report.evaluations?.map(ev => (
@@ -564,13 +561,8 @@ export default function StudentReportPage() {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    fontSize: '0.82rem'
-                  }}
+                  className="form-control"
+                  style={{ width: '100%', fontSize: '0.82rem' }}
                 >
                   <option value="DOUBT">Clarification / Doubt on Evaluation</option>
                   <option value="TOTALING_ERROR">Calculation / Totaling Error</option>
@@ -590,11 +582,9 @@ export default function StudentReportPage() {
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
                   placeholder="Explain clearly what you would like the teacher to review..."
+                  className="form-control"
                   style={{
                     width: '100%',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
                     fontSize: '0.82rem',
                     resize: 'vertical',
                     boxSizing: 'border-box'
@@ -620,12 +610,6 @@ export default function StudentReportPage() {
                   type="submit"
                   className="btn btn-primary btn-sm"
                   disabled={submittingDoubt}
-                  style={{
-                    background: '#1E3A5F',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px'
-                  }}
                 >
                   {submittingDoubt ? 'Submitting...' : 'Submit Clarification'}
                 </button>

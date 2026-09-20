@@ -3,12 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const STATUS_CONFIG = {
-  COMPLETED:        { dot: '#16a34a', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-  LOCKED:           { dot: '#16a34a', bg: '#f0fdf4', color: '#166534', border: '#bbf7d0' },
-  IN_PROGRESS:      { dot: '#d97706', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
-  DRAFT:            { dot: '#d97706', bg: '#fffbeb', color: '#92400e', border: '#fde68a' },
-  PENDING:          { dot: '#6b7280', bg: '#f3f4f6', color: '#374151', border: '#e5e7eb' },
-  UNLOCK_REQUESTED: { dot: '#2563eb', bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
+  COMPLETED:        { dot: '#16a34a', bg: 'var(--success-bg)', color: 'var(--success)', border: 'var(--success-border)' },
+  LOCKED:           { dot: '#16a34a', bg: 'var(--success-bg)', color: 'var(--success)', border: 'var(--success-border)' },
+  IN_PROGRESS:      { dot: '#d97706', bg: 'var(--warning-bg)', color: 'var(--warning)', border: 'var(--warning-border)' },
+  DRAFT:            { dot: '#d97706', bg: 'var(--warning-bg)', color: 'var(--warning)', border: 'var(--warning-border)' },
+  PENDING:          { dot: '#6b7280', bg: 'rgba(255,255,255,0.06)', color: 'var(--text-secondary)', border: 'var(--border)' },
+  UNLOCK_REQUESTED: { dot: '#38bdf8', bg: 'rgba(56, 189, 248, 0.12)', color: '#38bdf8', border: 'rgba(56, 189, 248, 0.3)' },
 };
 
 const StatusBadge = ({ status }) => {
@@ -477,7 +477,7 @@ export default function FacultyAssignmentsPage() {
               borderRadius: '10px',
               fontSize: '0.72rem',
               fontWeight: 700,
-              background: activeMainTab === 'assignments' ? 'var(--accent-light)' : '#e2e8f0',
+              background: activeMainTab === 'assignments' ? 'var(--accent-light)' : 'var(--bg-subtle)',
               color: activeMainTab === 'assignments' ? 'var(--amrita-maroon)' : 'var(--text-secondary)'
             }}>
               {items.length}
@@ -491,10 +491,10 @@ export default function FacultyAssignmentsPage() {
               padding: '10px 18px',
               fontSize: '0.88rem',
               fontWeight: activeMainTab === 'doubts' ? 800 : 600,
-              color: activeMainTab === 'doubts' ? '#b45309' : 'var(--text-secondary)',
+              color: activeMainTab === 'doubts' ? 'var(--warning)' : 'var(--text-secondary)',
               background: 'transparent',
               border: 'none',
-              borderBottom: `3px solid ${activeMainTab === 'doubts' ? '#b45309' : 'transparent'}`,
+              borderBottom: `3px solid ${activeMainTab === 'doubts' ? 'var(--warning)' : 'transparent'}`,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -509,9 +509,9 @@ export default function FacultyAssignmentsPage() {
               borderRadius: '10px',
               fontSize: '0.72rem',
               fontWeight: 800,
-              background: pendingDoubtsCount > 0 ? '#fef3c7' : '#e2e8f0',
-              color: pendingDoubtsCount > 0 ? '#b45309' : 'var(--text-secondary)',
-              border: pendingDoubtsCount > 0 ? '1px solid #fde68a' : 'none'
+              background: pendingDoubtsCount > 0 ? 'var(--warning-bg)' : 'var(--bg-subtle)',
+              color: pendingDoubtsCount > 0 ? 'var(--warning)' : 'var(--text-secondary)',
+              border: pendingDoubtsCount > 0 ? '1px solid var(--warning-border)' : 'none'
             }}>
               {pendingDoubtsCount > 0 ? `✋ ${pendingDoubtsCount} Pending` : doubts.length}
             </span>
@@ -621,9 +621,9 @@ export default function FacultyAssignmentsPage() {
                   <div
                     key={d._id}
                     style={{
-                      background: '#fff',
-                      border: `1px solid ${isPending ? '#fde68a' : 'var(--border)'}`,
-                      borderLeft: `4px solid ${isPending ? '#d97706' : isResolved ? '#16a34a' : '#2563eb'}`,
+                      background: 'var(--bg-white)',
+                      border: `1px solid ${isPending ? 'var(--warning-border)' : 'var(--border)'}`,
+                      borderLeft: `4px solid ${isPending ? 'var(--warning)' : isResolved ? 'var(--success)' : '#2563eb'}`,
                       borderRadius: '10px',
                       padding: '16px 18px',
                       boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
@@ -663,9 +663,9 @@ export default function FacultyAssignmentsPage() {
                           borderRadius: '12px',
                           fontSize: '0.7rem',
                           fontWeight: 800,
-                          background: isPending ? '#fef3c7' : isResolved ? '#dcfce7' : '#eff6ff',
-                          color: isPending ? '#b45309' : isResolved ? '#15803d' : '#1d4ed8',
-                          border: `1px solid ${isPending ? '#fde68a' : isResolved ? '#bbf7d0' : '#bfdbfe'}`
+                          background: isPending ? 'var(--warning-bg)' : isResolved ? 'var(--success-bg)' : 'rgba(56, 189, 248, 0.12)',
+                          color: isPending ? 'var(--warning)' : isResolved ? 'var(--success)' : 'var(--text-accent, #38bdf8)',
+                          border: `1px solid ${isPending ? 'var(--warning-border)' : isResolved ? 'var(--success-border)' : 'rgba(56, 189, 248, 0.25)'}`
                         }}>
                           {d.status}
                         </span>
@@ -673,7 +673,7 @@ export default function FacultyAssignmentsPage() {
                     </div>
 
                     {/* Doubt details & comment */}
-                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', fontSize: '0.82rem' }}>
+                    <div style={{ background: 'var(--bg-subtle)', padding: '12px 14px', borderRadius: '8px', fontSize: '0.82rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                         <span>CATEGORY: {d.category}</span>
                         <span>Raised on {formattedDate}</span>
@@ -943,7 +943,7 @@ export default function FacultyAssignmentsPage() {
                       onClick={() => toggleGroupCollapse(deptKey)}
                       style={{
                         padding: '14px 18px',
-                        background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
+                        background: 'var(--bg-subtle)',
                         borderBottom: isDeptCollapsed ? 'none' : '1px solid var(--border)',
                         cursor: 'pointer',
                         display: 'flex',
@@ -969,7 +969,7 @@ export default function FacultyAssignmentsPage() {
                           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                             {deptGroup.completedCount} / {deptGroup.totalCount} Evaluated
                           </span>
-                          <div style={{ width: '120px', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: '120px', height: '6px', background: 'var(--border)', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
                             <div style={{ width: `${deptGroup.percent}%`, height: '100%', background: 'var(--amrita-maroon)', borderRadius: '3px' }} />
                           </div>
                         </div>
@@ -979,7 +979,7 @@ export default function FacultyAssignmentsPage() {
 
                     {/* Level 1 Body (Subjects) */}
                     {!isDeptCollapsed && (
-                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#fafbfc' }}>
+                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg-page)' }}>
                         {deptGroup.subjects.map(subGroup => {
                           const subKey = `sub_${deptGroup.course}_${subGroup.subject}`;
                           const isSubCollapsed = !!collapsedGroups[subKey];
@@ -1037,7 +1037,7 @@ export default function FacultyAssignmentsPage() {
                                       style={{
                                         border: '1px solid var(--border)',
                                         borderRadius: '8px',
-                                        background: '#ffffff',
+                                        background: 'var(--bg-white)',
                                         padding: '14px',
                                         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                                       }}
@@ -1049,7 +1049,7 @@ export default function FacultyAssignmentsPage() {
                                         justifyContent: 'space-between',
                                         flexWrap: 'wrap',
                                         gap: '10px',
-                                        borderBottom: '1px solid #f1f5f9',
+                                        borderBottom: '1px solid var(--border)',
                                         paddingBottom: '10px',
                                         marginBottom: '10px'
                                       }}>
@@ -1089,8 +1089,8 @@ export default function FacultyAssignmentsPage() {
                                               style={{
                                                 fontSize: '0.74rem',
                                                 padding: '4px 8px',
-                                                borderColor: cohort.isPublished ? '#16a34a' : 'var(--border)',
-                                                color: cohort.isPublished ? '#16a34a' : 'var(--text-primary)'
+                                                borderColor: cohort.isPublished ? 'var(--success)' : 'var(--border)',
+                                                color: cohort.isPublished ? 'var(--success)' : 'var(--text-primary)'
                                               }}
                                               onClick={() => handleTogglePublish(cohort.examId)}
                                               title="Allow students to view evaluated marks"
@@ -1118,7 +1118,7 @@ export default function FacultyAssignmentsPage() {
                                       </div>
 
                                       {/* Answer Sheets Table */}
-                                      <table className="data-table" style={{ background: 'white' }}>
+                                      <table className="data-table" style={{ background: 'var(--bg-white)' }}>
                                         <thead>
                                           <tr>
                                             <th>Student</th>
@@ -1273,11 +1273,12 @@ export default function FacultyAssignmentsPage() {
           padding: '16px'
         }}>
           <div style={{
-            background: '#fff',
+            background: 'var(--bg-white)',
+            border: '1px solid var(--border)',
             borderRadius: '12px',
             width: '100%',
             maxWidth: '540px',
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
+            boxShadow: 'var(--shadow-lg)',
             overflow: 'hidden'
           }}>
             <div style={{
@@ -1305,7 +1306,7 @@ export default function FacultyAssignmentsPage() {
 
             <form onSubmit={handleReplySubmit} style={{ padding: '20px' }}>
               {/* Doubt summary banner */}
-              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '0.8rem' }}>
+              <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '0.8rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                   <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
                     {selectedDoubt.questionNumber ? `Question ${selectedDoubt.questionNumber}` : 'General Query'}
@@ -1337,11 +1338,10 @@ export default function FacultyAssignmentsPage() {
                       value={updatedMarks}
                       onChange={(e) => setUpdatedMarks(e.target.value)}
                       placeholder="Enter new marks"
+                      className="form-control"
                       style={{
                         width: '130px',
                         padding: '8px 10px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border)',
                         fontSize: '0.85rem',
                         fontWeight: 700
                       }}
@@ -1361,11 +1361,10 @@ export default function FacultyAssignmentsPage() {
                 <select
                   value={replyStatus}
                   onChange={(e) => setReplyStatus(e.target.value)}
+                  className="form-control"
                   style={{
                     width: '100%',
                     padding: '8px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
                     fontSize: '0.82rem',
                     fontWeight: 600
                   }}
@@ -1386,11 +1385,10 @@ export default function FacultyAssignmentsPage() {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Type your explanation or remark to the student..."
+                  className="form-control"
                   style={{
                     width: '100%',
                     padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
                     fontSize: '0.82rem',
                     boxSizing: 'border-box'
                   }}
@@ -1412,7 +1410,6 @@ export default function FacultyAssignmentsPage() {
                   type="submit"
                   className="btn btn-primary btn-sm"
                   disabled={submittingReply}
-                  style={{ background: '#1E3A5F' }}
                 >
                   {submittingReply ? 'Saving...' : 'Submit Resolution'}
                 </button>

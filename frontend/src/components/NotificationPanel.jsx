@@ -157,13 +157,13 @@ export default function NotificationPanel({ tokenKey = 'token', onClose, onNavig
   const getIconConfig = (type) => {
     switch (type) {
       case 'DOUBT_RAISED':
-        return { icon: '✋', bg: '#FEF3C7', color: '#B45309' };
+        return { icon: '✋', bg: 'var(--warning-bg)', color: 'var(--warning)' };
       case 'DOUBT_REPLIED':
-        return { icon: '💬', bg: '#DCFCE7', color: '#15803D' };
+        return { icon: '💬', bg: 'var(--success-bg)', color: 'var(--success)' };
       case 'RESULT_PUBLISHED':
-        return { icon: '📊', bg: '#EFF6FF', color: '#1D4ED8' };
+        return { icon: '📊', bg: 'rgba(56, 189, 248, 0.15)', color: 'var(--text-accent, #38bdf8)' };
       default:
-        return { icon: '🔔', bg: '#F3F4F6', color: '#374151' };
+        return { icon: '🔔', bg: 'var(--bg-subtle)', color: 'var(--text-secondary)' };
     }
   };
 

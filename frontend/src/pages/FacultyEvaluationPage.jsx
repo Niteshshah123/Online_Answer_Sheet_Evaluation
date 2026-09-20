@@ -14,7 +14,7 @@ const STATUS_BADGE = {
 
 const ctrlBtn = {
   width: '24px', height: '24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-  background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: 'var(--bg-white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
   color: 'var(--text-secondary)', transition: 'all 0.15s ease'
 };
 
@@ -22,7 +22,7 @@ const PdfControls = ({ label, icon, zoom, onZoomIn, onZoomOut, onRotate }) => (
   <div style={{
     padding: '0 14px',
     height: '42px',
-    background: '#f8fafc',
+    background: 'var(--bg-subtle)',
     borderBottom: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'space-between',
@@ -35,7 +35,7 @@ const PdfControls = ({ label, icon, zoom, onZoomIn, onZoomOut, onRotate }) => (
         {label}
       </span>
     </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'white', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'var(--bg-white)', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' }}>
       <button onClick={onZoomOut} style={ctrlBtn} title="Zoom Out">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
       </button>
@@ -201,7 +201,7 @@ export default function FacultyEvaluationPage() {
   );
 
   const renderQuestionPaperPanel = () => (
-    <div key="panel-question-paper" style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
+    <div key="panel-question-paper" style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
       <PdfControls
         label="Question Paper"
         icon={qPaperIcon}
@@ -227,7 +227,7 @@ export default function FacultyEvaluationPage() {
   );
 
   const renderStudentAnswerSheetPanel = () => (
-    <div key="panel-student-sheet" style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
+    <div key="panel-student-sheet" style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
       <PdfControls
         label="Student Answer Sheet"
         icon={studentSheetIcon}
@@ -427,7 +427,7 @@ export default function FacultyEvaluationPage() {
       <div style={{
         padding: '0 20px',
         height: '52px',
-        background: 'white',
+        background: 'var(--bg-white)',
         borderBottom: '1px solid var(--border)',
         display: 'flex',
         alignItems: 'center',
@@ -451,7 +451,7 @@ export default function FacultyEvaluationPage() {
           <div style={{ width: '1px', height: '22px', background: 'var(--border)' }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--amrita-maroon)' }}>Evaluation Workspace</span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: '#f1f5f9', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
               {sheetId}
             </span>
             <span style={{
@@ -634,9 +634,9 @@ export default function FacultyEvaluationPage() {
               width: '28px',
               height: '28px',
               borderRadius: '50%',
-              background: '#ffffff',
-              border: '1px solid #cbd5e1',
-              boxShadow: '0 2px 6px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)',
+              background: 'var(--bg-white)',
+              border: '1px solid var(--border-strong)',
+              boxShadow: 'var(--shadow)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -650,13 +650,11 @@ export default function FacultyEvaluationPage() {
               e.currentTarget.style.transform = 'translateX(-50%) scale(1.15)';
               e.currentTarget.style.borderColor = 'var(--amrita-maroon)';
               e.currentTarget.style.background = 'var(--accent-light)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(30, 58, 95, 0.22)';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
-              e.currentTarget.style.borderColor = '#cbd5e1';
-              e.currentTarget.style.background = '#ffffff';
-              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+              e.currentTarget.style.background = 'var(--bg-white)';
             }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -681,7 +679,7 @@ export default function FacultyEvaluationPage() {
         {/* Panel 3 — Official Answer Key (ONLY displayed for End-Sem / End-Term Exams) */}
         {!isMidTerm && (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
               <PdfControls
                 label="Official Answer Key"
                 icon={answerKeyIcon}
@@ -690,7 +688,7 @@ export default function FacultyEvaluationPage() {
                 onZoomOut={() => setKeyZoom(z => Math.max(z - 15, 50))}
                 onRotate={() => setKeyRotate(r => (r + 90) % 360)}
               />
-              <div style={{ flex: 1, overflow: 'auto', background: '#262626', display: 'flex', justifyContent: 'center', padding: '10px' }}>
+              <div style={{ flex: 1, overflow: 'auto', background: '#1e2530', display: 'flex', justifyContent: 'center', padding: '10px' }}>
                 {answerKeyPreviewUrl ? (
                   <iframe title="Official Answer Key" src={answerKeyPreviewUrl}
                     style={{ width: `${keyZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${keyRotate}deg)`, transition: 'transform 0.2s', borderRadius: '4px', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
@@ -712,11 +710,11 @@ export default function FacultyEvaluationPage() {
 
         {/* Final Panel — Question Evaluation Form */}
         {showEvalPanel && (
-          <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden' }}>
             <div style={{
               padding: '0 14px',
               height: '42px',
-              background: '#f8fafc',
+              background: 'var(--bg-subtle)',
               borderBottom: '1px solid var(--border)',
               display: 'flex',
               justifyContent: 'space-between',
@@ -727,7 +725,7 @@ export default function FacultyEvaluationPage() {
                 <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Question Evaluation
                 </span>
-                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', background: 'white', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: '10px' }}>
+                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: '10px' }}>
                   {rows.length} Qs
                 </span>
               </div>
@@ -776,7 +774,7 @@ export default function FacultyEvaluationPage() {
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>MAX</span>
                           <input type="number" value={row.maxMark ?? ''} onChange={e => updateMax(row.evaluationId, e.target.value)}
                             disabled={finalSubmittedToAdmin} min={1} step="1"
-                            style={{ width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', background: finalSubmittedToAdmin ? 'var(--bg-subtle)' : 'white', color: 'var(--text-primary)' }}
+                            style={{ width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', background: 'var(--bg-subtle)', color: 'var(--text-primary)' }}
                           />
                         </div>
                       </div>
@@ -786,7 +784,7 @@ export default function FacultyEvaluationPage() {
                             placeholder={`0 – ${row.maxMark ?? 'max'}`}
                             onChange={e => updateRow(row.evaluationId, 'marksObtained', e.target.value === '' ? null : Math.round(Number(e.target.value)))}
                             disabled={finalSubmittedToAdmin} min={0} max={row.maxMark ?? undefined} step="1"
-                            style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, background: finalSubmittedToAdmin ? 'var(--bg-subtle)' : 'white', fontSize: '0.875rem', padding: '6px 10px' }}
+                            style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, fontSize: '0.875rem', padding: '6px 10px' }}
                           />
                           {!finalSubmittedToAdmin && (
                             <button type="button" onClick={() => toggleRemark(row.evaluationId)}
@@ -814,7 +812,7 @@ export default function FacultyEvaluationPage() {
           </div>
 
           {rows.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: '12px', flexShrink: 0, background: 'white' }}>
+            <div style={{ borderTop: '1px solid var(--border)', padding: '12px', flexShrink: 0, background: 'var(--bg-white)' }}>
               <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '10px' }}>
                 {totals.coEvaluatorMax > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -845,7 +843,7 @@ export default function FacultyEvaluationPage() {
                   <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>{totals.convertedScore} / {totals.scale}</span>
                 </div>
                 {totals.nearPass && (
-                  <div style={{ marginTop: '8px', padding: '6px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>
+                  <div style={{ marginTop: '8px', padding: '6px 10px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '4px', fontSize: '0.7rem', color: 'var(--warning)', fontWeight: 600 }}>
                     💡 Moderation Notice: Student is {totals.marksNeededToPass} mark(s) short of passing ({totals.passThreshold}/{totals.scale}).
                   </div>
                 )}

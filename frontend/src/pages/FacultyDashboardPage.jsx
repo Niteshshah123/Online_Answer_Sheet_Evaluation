@@ -239,8 +239,8 @@ export default function FacultyDashboardPage() {
       ───────────────────────────────────────── */}
       {doubts.some(d => d.status === 'PENDING') && (
         <div style={{
-          background: 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)',
-          border: '1px solid #fde68a',
+          background: 'var(--warning-bg)',
+          border: '1px solid var(--warning-border)',
           borderRadius: '12px',
           padding: '14px 20px',
           display: 'flex',
@@ -248,22 +248,22 @@ export default function FacultyDashboardPage() {
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: '12px',
-          boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               width: '38px', height: '38px', borderRadius: '50%',
-              background: '#d97706', color: '#fff',
+              background: 'var(--warning)', color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: '1.2rem', flexShrink: 0
             }}>
               ✋
             </div>
             <div>
-              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#92400e' }}>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: 'var(--warning)' }}>
                 {doubts.filter(d => d.status === 'PENDING').length} Student Query / Doubt Pending Review
               </div>
-              <div style={{ fontSize: '0.78rem', color: '#b45309' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 Students have requested clarification on evaluated questions or score totaling.
               </div>
             </div>
@@ -308,7 +308,7 @@ export default function FacultyDashboardPage() {
         }}>
           <div style={{
             width: '46px', height: '46px', borderRadius: '12px',
-            background: '#EFF6FF', color: '#2563EB', display: 'flex',
+            background: 'rgba(56, 189, 248, 0.12)', color: 'var(--text-accent, #38bdf8)', display: 'flex',
             alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -336,7 +336,7 @@ export default function FacultyDashboardPage() {
         }}>
           <div style={{
             width: '46px', height: '46px', borderRadius: '12px',
-            background: '#ECFDF5', color: '#16A34A', display: 'flex',
+            background: 'var(--success-bg)', color: 'var(--success)', display: 'flex',
             alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -364,7 +364,7 @@ export default function FacultyDashboardPage() {
         }}>
           <div style={{
             width: '46px', height: '46px', borderRadius: '12px',
-            background: '#FFFBEB', color: '#D97706', display: 'flex',
+            background: 'var(--warning-bg)', color: 'var(--warning)', display: 'flex',
             alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -456,13 +456,13 @@ export default function FacultyDashboardPage() {
 
         {/* Right Motivational Card */}
         <div style={{
-          background: '#F0FDF4', border: '1px solid #BBF7D0',
+          background: 'var(--success-bg)', border: '1px solid var(--success-border)',
           borderRadius: '14px', padding: '16px 18px', display: 'flex',
           alignItems: 'center', gap: '14px', boxShadow: 'var(--shadow-sm)'
         }} className="fac-dash-encourage-card">
           <div style={{
             width: '38px', height: '38px', borderRadius: '10px',
-            background: '#DCFCE7', color: '#16A34A', display: 'flex',
+            background: 'var(--success-bg)', color: 'var(--success)', display: 'flex',
             alignItems: 'center', justifyContent: 'center', flexShrink: 0
           }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
@@ -470,7 +470,7 @@ export default function FacultyDashboardPage() {
             </svg>
           </div>
           <div>
-            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#166534' }}>
+            <div style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--success)' }}>
               {progressHeadline}
             </div>
             <div style={{ fontSize: '0.74rem', color: '#15803D', marginTop: '2px', lineHeight: 1.35 }}>
@@ -535,8 +535,8 @@ export default function FacultyDashboardPage() {
                 style={{
                   marginTop: '16px',
                   padding: '5px 10px', fontSize: '0.74rem', fontWeight: 600,
-                  border: '1px solid #FECACA', borderRadius: '6px',
-                  background: '#FEF2F2', color: '#DC2626', cursor: 'pointer',
+                  border: '1px solid var(--error-border)', borderRadius: '6px',
+                  background: 'var(--error-bg)', color: 'var(--error)', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', gap: '4px'
                 }}
               >
@@ -629,8 +629,8 @@ export default function FacultyDashboardPage() {
                         <span style={{
                           display: 'inline-block',
                           padding: '3px 8px', borderRadius: '6px',
-                          background: '#EFF6FF', border: '1px solid #BFDBFE',
-                          color: '#1D4ED8', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.03em'
+                          background: 'rgba(56, 189, 248, 0.12)', border: '1px solid rgba(56, 189, 248, 0.25)',
+                          color: 'var(--text-accent, #38bdf8)', fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.03em'
                         }}>
                           {item.questionRange ? item.questionRange.toUpperCase() : 'ALL'}
                         </span>
@@ -653,9 +653,9 @@ export default function FacultyDashboardPage() {
                             onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
                             style={{
                               padding: '6px 14px', borderRadius: '8px',
-                              border: isDone ? '1px solid #BFDBFE' : '1px solid var(--border)',
-                              background: isDone ? '#EFF6FF' : 'var(--bg-white)',
-                              color: isDone ? '#1D4ED8' : 'var(--text-primary)',
+                              border: isDone ? '1px solid var(--border)' : '1px solid var(--border)',
+                              background: isDone ? 'var(--bg-subtle)' : 'var(--bg-white)',
+                              color: isDone ? 'var(--text-secondary)' : 'var(--text-primary)',
                               fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer',
                               display: 'inline-flex', alignItems: 'center', gap: '6px',
                               transition: 'all 0.15s ease', boxShadow: 'var(--shadow-sm)'
