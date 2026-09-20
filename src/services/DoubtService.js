@@ -114,14 +114,32 @@ class DoubtService {
     return doubt;
   }
 
-  async getStudentDoubts(studentEmail, sheetId) {
+  async getStudentDoubts(studentEmail, sheetId = null) {
     const normalized = normalizeEmail(studentEmail);
     const user = await User.findOne({ email: normalized, role: 'STUDENT' });
     if (!user) {
       throw new AppError('Student not found', 404);
     }
 
-    const doubts = await DoubtRepository.findBySheetId(sheetId);
+    let doubts = [];
+    if (sheetId) {
+      doubts = await DoubtRepository.findBySheetId(sheetId);
+    } else {
+      const student = await StudentRepository.findByEmailOrUserId(normalized, user._id);
+      if (!student) {
+        return [];
+      }
+      const studentSheets = await AnswerSheetRepository.findByStudentId(student._id);
+      const sheetIds = studentSheets.map(s => s._id);
+
+      doubts = await DoubtRepository.model.find({
+        $or: [
+          { studentId: student._id },
+          ...(sheetIds.length > 0 ? [{ sheetId: { $in: sheetIds } }] : [])
+        ]
+      }).sort({ createdAt: -1 });
+    }
+
     const enriched = [];
 
     for (const d of doubts) {
@@ -130,17 +148,91 @@ class DoubtService {
         const faculty = await FacultyRepository.findById(d.facultyId);
         if (faculty) {
           const facultyUser = await User.findById(faculty.userId);
-          facultyName = facultyUser?.name || faculty.name;
+          facultyName = facultyUser?.name || faculty.name || 'Course Faculty';
+        }
+      }
+
+      const cleanFacultyName = (facultyName || 'Course Faculty').replace(/\s*\(.*?\)\s*/g, '').trim() || 'Course Faculty';
+
+      let exam = null;
+      let sheet = null;
+      if (d.examId) {
+        exam = await Exam.findById(d.examId);
+      }
+      if (d.sheetId) {
+        sheet = await AnswerSheet.findById(d.sheetId);
+      }
+
+      let currentMark = null;
+      let maxMark = null;
+      if (d.questionNumber && d.sheetId) {
+        const ev = await QuestionEvaluation.findOne({ sheetId: d.sheetId, questionNumber: d.questionNumber });
+        currentMark = ev ? ev.marksObtained : null;
+        if (exam && exam.questionWeightage) {
+          maxMark = exam.questionWeightage[d.questionNumber - 1] ?? null;
         }
       }
 
       enriched.push({
         ...d.toObject(),
-        facultyName
+        facultyName,
+        cleanFacultyName,
+        course: exam?.course || '—',
+        subject: exam?.subject || '—',
+        examType: exam?.examType || 'EXAM',
+        semester: exam?.semester || '',
+        section: exam?.section || '',
+        examName: exam ? `${exam.subject} (${exam.examType || 'Exam'})` : 'Exam',
+        sheetPdfUrl: sheet?.pdfUrl || '',
+        currentMark,
+        maxMark
       });
     }
 
     return enriched;
+  }
+
+  async followUpDoubt({ studentEmail, doubtId, followUpComment }) {
+    const normalized = normalizeEmail(studentEmail);
+    const user = await User.findOne({ email: normalized, role: 'STUDENT' });
+    if (!user) {
+      throw new AppError('Student not found', 404);
+    }
+
+    const doubt = await DoubtRepository.findById(doubtId);
+    if (!doubt) {
+      throw new AppError('Doubt not found', 404);
+    }
+
+    if (!followUpComment || !String(followUpComment).trim()) {
+      throw new AppError('Follow-up message is required', 400);
+    }
+
+    // Append follow-up comment
+    doubt.comment = `${doubt.comment}\n\n[Student Follow-up - ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}]: ${String(followUpComment).trim()}`;
+    doubt.status = 'PENDING';
+    await doubt.save();
+
+    // Notify evaluator
+    if (doubt.facultyId) {
+      try {
+        const faculty = await FacultyRepository.findById(doubt.facultyId);
+        if (faculty && faculty.userId) {
+          await NotificationService.createNotification({
+            userId: faculty.userId,
+            title: `🔄 Student Follow-up: Q${doubt.questionNumber || 'Paper'}`,
+            message: `Student posted a follow-up query: "${followUpComment.substring(0, 100)}"`,
+            type: 'DOUBT_FOLLOWUP',
+            link: '/faculty/assignments?tab=doubts',
+            referenceId: doubt._id
+          });
+        }
+      } catch (err) {
+        console.error('Failed to notify faculty about follow-up:', err);
+      }
+    }
+
+    return doubt;
   }
 
   async getFacultyDoubts(facultyEmail, statusFilter) {

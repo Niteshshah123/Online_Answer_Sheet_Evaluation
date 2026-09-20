@@ -61,10 +61,33 @@ router.post('/doubts', studentAuthMiddleware, async (req, res, next) => {
   }
 });
 
+router.get('/doubts', studentAuthMiddleware, async (req, res, next) => {
+  try {
+    const result = await doubtService.getStudentDoubts(req.user.email);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.get('/doubts/sheet/:sheetId', studentAuthMiddleware, async (req, res, next) => {
   try {
     const result = await doubtService.getStudentDoubts(req.user.email, req.params.sheetId);
     res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/doubts/:doubtId/follow-up', studentAuthMiddleware, async (req, res, next) => {
+  try {
+    const { followUpComment } = req.body;
+    const result = await doubtService.followUpDoubt({
+      studentEmail: req.user.email,
+      doubtId: req.params.doubtId,
+      followUpComment
+    });
+    res.json({ success: true, message: 'Follow-up submitted successfully', data: result });
   } catch (error) {
     next(error);
   }

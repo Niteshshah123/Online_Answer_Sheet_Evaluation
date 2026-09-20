@@ -291,7 +291,7 @@ export default function StudentReportPage() {
                         </div>
                       </td>
                       <td style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
-                        {item.facultyName || '—'}
+                        {item.facultyName ? item.facultyName.replace(/\s*\(.*?\)\s*/g, '').trim() : '—'}
                       </td>
                       <td style={{ fontSize: '0.73rem', color: item.review ? 'var(--text-primary)' : 'var(--text-muted)', maxWidth: '140px' }}>
                         {item.review ? item.review : <em>No note</em>}
@@ -383,6 +383,7 @@ export default function StudentReportPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '16px' }}>
             {doubts.map((d) => {
               const dCfg = doubtStatusCfg(d.status);
+              const cleanEvaluator = d.cleanFacultyName || (d.facultyName || 'Faculty').replace(/\s*\(.*?\)\s*/g, '').trim() || 'Faculty';
               const formattedDate = new Date(d.createdAt).toLocaleDateString('en-US', {
                 month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
               });
@@ -454,7 +455,7 @@ export default function StudentReportPage() {
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                         <span style={{ fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', color: '#15803d' }}>
-                          ✓ Evaluator Reply ({d.facultyName || 'Faculty'}):
+                          ✓ Evaluator Reply ({cleanEvaluator}):
                         </span>
                         {resolvedDate && <span style={{ fontSize: '0.68rem', color: '#166534' }}>{resolvedDate}</span>}
                       </div>
@@ -463,7 +464,7 @@ export default function StudentReportPage() {
                   ) : (
                     <div style={{ fontSize: '0.72rem', color: '#b45309', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <span>⏳</span>
-                      <span>Assigned to <strong>{d.facultyName || 'Faculty Evaluator'}</strong>. Waiting for review and response.</span>
+                      <span>Assigned to <strong>{cleanEvaluator}</strong>. Waiting for review and response.</span>
                     </div>
                   )}
                 </div>
