@@ -238,11 +238,8 @@ class ImportService {
     }
   }
 
-  async ensureAllocationsForExam(exam) {
+  async ensureAllocationsForExam(exam, forceResync = false) {
     const existingAllocations = await QuestionAllocationRepository.findByExam(exam._id);
-    if (existingAllocations.length > 0) {
-      return;
-    }
 
     // Fetch all faculty teaching this subject in this semester across all sections
     let mappings = await FacultyMappingRepository.findBySubjectAndSemester(
@@ -266,9 +263,33 @@ class ImportService {
       return;
     }
 
-    // Deduplicate faculty IDs across sections
-    const facultyIds = Array.from(new Set(mappings.map((mapping) => mapping.facultyId.toString())));
-    const allocations = this.equalStrategy.distribute(exam.questionWeightage, facultyIds);
+    // Deduplicate and sort faculty IDs across all sections to ensure deterministic assignment
+    const cohortFacultyIds = Array.from(new Set(mappings.map((mapping) => mapping.facultyId.toString())))
+      .filter(Boolean)
+      .sort();
+
+    const currentAllocatedFacultyIds = Array.from(new Set(existingAllocations.map((a) => a.facultyId.toString())))
+      .filter(Boolean)
+      .sort();
+
+    const isSameFacultyList =
+      !forceResync &&
+      existingAllocations.length > 0 &&
+      currentAllocatedFacultyIds.length === cohortFacultyIds.length &&
+      currentAllocatedFacultyIds.every((id, idx) => id === cohortFacultyIds[idx]);
+
+    if (isSameFacultyList) {
+      return;
+    }
+
+    // Remove old allocations when rebalancing across the new faculty list
+    if (existingAllocations.length > 0) {
+      for (const oldAlloc of existingAllocations) {
+        await QuestionAllocationRepository.deleteById(oldAlloc._id);
+      }
+    }
+
+    const allocations = this.equalStrategy.distribute(exam.questionWeightage, cohortFacultyIds);
 
     for (const allocation of allocations) {
       await QuestionAllocationRepository.create({
@@ -284,7 +305,7 @@ class ImportService {
   async ensureEvaluationsForExam(exam) {
     const answerSheets = await AnswerSheetRepository.findAll({ examId: exam._id });
     const allocations = await QuestionAllocationRepository.findByExam(exam._id);
-    const totalQuestions = exam.questionWeightage.length || 10;
+    const totalQuestions = exam.questionWeightage?.length || 10;
 
     for (const sheet of answerSheets) {
       for (let q = 1; q <= totalQuestions; q += 1) {
@@ -303,9 +324,33 @@ class ImportService {
             status: 'PENDING',
             facultyId: assignedFaculty.facultyId
           });
+        } else {
+          // Re-sync faculty assignment if evaluation hasn't been evaluated or submitted yet
+          const isPending =
+            (existing.status === 'PENDING' || !existing.status) &&
+            (existing.marksObtained === null || existing.marksObtained === undefined) &&
+            !existing.evaluatorSubmitted;
+          const targetFacultyIdStr = assignedFaculty.facultyId.toString();
+
+          if (isPending && existing.facultyId?.toString() !== targetFacultyIdStr) {
+            existing.facultyId = assignedFaculty.facultyId;
+            existing.updatedAt = new Date();
+            await existing.save();
+          }
         }
       }
     }
+  }
+
+  async resyncAllAllocations() {
+    const exams = await ExamRepository.findAll();
+    for (const exam of exams) {
+      await this.ensureAllocationsForExam(exam, true);
+      await this.ensureEvaluationsForExam(exam);
+    }
+    await dashboardObserver.onImportCompleted();
+    await auditObserver.onEvent('RESYNC', 'ADMIN', 'Re-synchronized question allocations and evaluations across all exams');
+    return { success: true, message: `Allocations and pending evaluations successfully synchronized across ${exams.length} exams.` };
   }
 }
 

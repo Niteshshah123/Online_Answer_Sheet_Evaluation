@@ -79,6 +79,10 @@ class AdminFacade {
     return distributionService.configureDistribution(examId, strategyType, allocations);
   }
 
+  async resyncAllocations() {
+    return importService.resyncAllAllocations();
+  }
+
   async togglePublishExam(examId, performedBy) {
     const ExamRepository = require('../repositories/ExamRepository');
     const exam = await ExamRepository.findById(examId);

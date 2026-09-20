@@ -207,6 +207,15 @@ router.post('/configuration/distribution', authMiddleware, async (req, res, next
   }
 });
 
+router.post('/allocations/resync', authMiddleware, async (req, res, next) => {
+  try {
+    const result = await adminFacade.resyncAllocations();
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 // List exams with optional filters & enriched student/faculty metadata
 router.get('/exams', authMiddleware, async (req, res, next) => {
   try {
