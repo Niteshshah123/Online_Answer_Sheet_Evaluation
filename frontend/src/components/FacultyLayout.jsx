@@ -138,7 +138,8 @@ export default function FacultyLayout() {
     navigate('/faculty/login');
   };
 
-  const user = { name: facultyName, email: facultyEmail, role: 'Faculty · Evaluator' };
+  const cleanFacultyName = (facultyName || 'Faculty').replace(/\s*\(.*?\)\s*/g, '').trim() || 'Faculty';
+  const user = { name: cleanFacultyName, email: facultyEmail, role: 'Faculty · Evaluator' };
 
   return (
     <div className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
@@ -228,7 +229,7 @@ export default function FacultyLayout() {
         </div>
 
         {/* Navigation Sections */}
-        <div style={{ position: 'relative', zIndex: 1, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           {NAV_SECTIONS.map((section) => (
             <div key={section.label} style={{ marginBottom: '14px' }}>
               <div className="sidebar-section-label" style={{ fontSize: '0.68rem', letterSpacing: '0.1em' }}>
@@ -268,28 +269,185 @@ export default function FacultyLayout() {
               </nav>
             </div>
           ))}
+        </div>
 
-          {/* Sidebar Footer: Golden Lotus & Quote */}
-          <div style={{
-            marginTop: 'auto', padding: '16px 14px',
+        {/* Sidebar Footer: User Profile / Sign In Menu */}
+        <div
+          style={{
+            position: 'relative',
+            zIndex: 100,
+            flexShrink: 0,
+            padding: collapsed ? '12px 6px' : '12px 10px',
             borderTop: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center',
-            gap: '8px'
-          }}>
-            {!collapsed ? (
-              <>
-                <GoldenLotus />
-                <div style={{
-                  fontSize: '0.72rem', color: 'rgba(255,255,255,0.65)',
-                  fontStyle: 'italic', lineHeight: 1.4
-                }}>
-                  "Knowledge Empowers Compassion"
+            background: 'rgba(15, 23, 42, 0.95)'
+          }}
+          ref={menuRef}
+        >
+          <div
+            onClick={() => setMenuOpen(o => !o)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: collapsed ? '8px 0' : '8px 10px',
+              borderRadius: '10px',
+              background: menuOpen ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.12)',
+              cursor: 'pointer',
+              justifyContent: collapsed ? 'center' : 'space-between',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'}
+            onMouseLeave={e => e.currentTarget.style.background = menuOpen ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)'}
+            title={collapsed ? cleanFacultyName : undefined}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #C9A84C 0%, #A01B2D 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 800,
+                fontSize: '0.88rem',
+                flexShrink: 0,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+              }}>
+                {cleanFacultyName.charAt(0).toUpperCase()}
+              </div>
+
+              {!collapsed && (
+                <div style={{ textAlign: 'left', minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {cleanFacultyName}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}>
+                    Faculty Evaluator
+                  </div>
                 </div>
-              </>
-            ) : (
-              <GoldenLotus />
+              )}
+            </div>
+
+            {!collapsed && (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}
+              >
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
             )}
           </div>
+
+          {/* Upward Dropdown Menu */}
+          {menuOpen && (
+            <div
+              className="topbar-dropdown"
+              style={{
+                position: 'absolute',
+                top: 'auto',
+                bottom: 'calc(100% + 8px)',
+                left: '10px',
+                right: collapsed ? 'auto' : '10px',
+                width: collapsed ? '220px' : 'calc(100% - 20px)',
+                zIndex: 9999,
+                borderRadius: '12px',
+                boxShadow: '0 12px 36px rgba(0,0,0,0.35)',
+                background: 'var(--bg-white, #FFFFFF)',
+                border: '1px solid var(--border, rgba(0,0,0,0.1))',
+                overflow: 'hidden',
+                animation: 'dropdownIn 0.15s ease'
+              }}
+            >
+              <div className="topbar-dropdown-header" style={{ padding: '12px 14px', background: 'var(--bg-subtle, #F8FAFC)' }}>
+                <div className="topbar-dropdown-avatar" style={{ background: '#1E3A5F', color: '#FFFFFF', width: '32px', height: '32px', fontSize: '0.8rem' }}>
+                  {cleanFacultyName.charAt(0).toUpperCase()}
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <div className="topbar-dropdown-name" style={{ fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {cleanFacultyName}
+                  </div>
+                  <div className="topbar-dropdown-role" style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    {facultyEmail || 'Faculty Evaluator'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="topbar-dropdown-divider" style={{ margin: '4px 0' }} />
+
+              <button
+                type="button"
+                className="topbar-dropdown-item"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
+                  padding: '9px 14px', background: 'transparent', border: 'none',
+                  fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                  cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+                Edit Profile
+              </button>
+
+              <button
+                type="button"
+                className="topbar-dropdown-item"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setProfileOpen(true);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
+                  padding: '9px 14px', background: 'transparent', border: 'none',
+                  fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-secondary)',
+                  cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                Change Password
+              </button>
+
+              <div className="topbar-dropdown-divider" style={{ margin: '4px 0' }} />
+
+              <button
+                type="button"
+                className="topbar-dropdown-item topbar-dropdown-item-danger"
+                onClick={() => {
+                  setMenuOpen(false);
+                  logout();
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '9px', width: '100%',
+                  padding: '9px 14px', background: 'transparent', border: 'none',
+                  fontSize: '0.8rem', fontWeight: 600, color: '#c0392b',
+                  cursor: 'pointer', textAlign: 'left'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
+                Sign Out
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -300,12 +458,6 @@ export default function FacultyLayout() {
         <header className="topbar">
           {/* Topbar Left: Mobile Sidebar Toggle, Title, Subtitle, Search Bar */}
           <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            {/* <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Open sidebar">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
-              </svg>
-            </button> */}
-
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                 Faculty Portal
@@ -336,7 +488,7 @@ export default function FacultyLayout() {
             </div>
           </div>
 
-          {/* Topbar Right: Calendar & Tasks, Theme Toggle, Bell, User Profile */}
+          {/* Topbar Right: Calendar & Tasks, Theme Toggle, Bell */}
           <div className="topbar-right" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div className="topbar-cal-wrap" ref={calRef}>
               <button
@@ -363,6 +515,8 @@ export default function FacultyLayout() {
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
               }
             </button>
+
+            <div className="topbar-divider" />
 
             {/* Notification Bell */}
             <div className="topbar-notif-wrap" ref={notifRef} style={{ position: 'relative' }}>
@@ -409,65 +563,6 @@ export default function FacultyLayout() {
                   }}
                   onNavigate={(link) => navigate(link)}
                 />
-              )}
-            </div>
-
-            <div className="topbar-divider" />
-
-            {/* User Profile Menu */}
-            <div className="topbar-user-menu" ref={menuRef}>
-              <div
-                className="topbar-user"
-                onClick={() => setMenuOpen(o => !o)}
-                style={{
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '9px',
-                  padding: '4px 8px', borderRadius: '8px', transition: 'background 0.15s ease'
-                }}
-              >
-                <div style={{
-                  width: '32px', height: '32px', borderRadius: '50%',
-                  background: '#1E3A5F', color: '#FFFFFF', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem'
-                }}>
-                  {facultyName.charAt(0).toUpperCase()}
-                </div>
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-                    {facultyName}
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-                    Faculty Evaluator
-                  </div>
-                </div>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </div>
-
-              {menuOpen && (
-                <div className="topbar-dropdown" style={{ minWidth: '200px' }}>
-                  <div className="topbar-dropdown-header">
-                    <div className="topbar-dropdown-avatar">{facultyName.charAt(0).toUpperCase()}</div>
-                    <div>
-                      <div className="topbar-dropdown-name">{facultyName}</div>
-                      <div className="topbar-dropdown-role">Faculty · Evaluator</div>
-                    </div>
-                  </div>
-                  <div className="topbar-dropdown-divider" />
-                  <button className="topbar-dropdown-item" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
-                    Edit Profile
-                  </button>
-                  <button className="topbar-dropdown-item" onClick={() => { setMenuOpen(false); setProfileOpen(true); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                    Change Password
-                  </button>
-                  <div className="topbar-dropdown-divider" />
-                  <button className="topbar-dropdown-item topbar-dropdown-item-danger" onClick={() => { setMenuOpen(false); logout(); }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
-                    Sign Out
-                  </button>
-                </div>
               )}
             </div>
           </div>
