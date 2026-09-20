@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
+import NotificationPanel from './NotificationPanel';
 
 const NAV_LINKS = [
   {
@@ -36,22 +37,40 @@ export default function StudentLayout() {
   const [studentName, setStudentName] = useState('Student');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const menuRef = useRef(null);
+  const notifRef = useRef(null);
 
   const isReportPage = location.pathname.startsWith('/student/report/');
   const [title, subtitle] = isReportPage
     ? ['Result Report', 'Question-wise Breakdown']
     : (PAGE_TITLES[location.pathname] || ['Student Portal', '']);
 
+  const fetchUnreadCount = () => {
+    const token = localStorage.getItem('studentToken');
+    if (!token) return;
+    axios.get('/api/notifications', {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => {
+      setUnreadCount(r.data.data?.unreadCount || 0);
+    }).catch(() => {});
+  };
+
   useEffect(() => {
     axios.get('/api/student/dashboard', {
       headers: { Authorization: `Bearer ${localStorage.getItem('studentToken')}` }
     }).then(r => { if (r.data.data?.studentName) setStudentName(r.data.data.studentName); }).catch(() => {});
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -119,6 +138,57 @@ export default function StudentLayout() {
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
               }
             </button>
+
+            <div className="topbar-divider" />
+
+            {/* Notification Bell */}
+            <div className="topbar-notif-wrap" ref={notifRef} style={{ position: 'relative' }}>
+              <button
+                className={`topbar-icon-btn topbar-icon-btn-clickable${notifOpen ? ' active' : ''}`}
+                onClick={() => {
+                  setNotifOpen(o => !o);
+                  fetchUnreadCount();
+                }}
+                title="Notifications"
+                style={{ position: 'relative' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unreadCount > 0 ? (
+                  <span style={{
+                    position: 'absolute', top: '2px', right: '2px',
+                    minWidth: '15px', height: '15px', borderRadius: '10px',
+                    background: '#EF4444', color: '#FFFFFF',
+                    fontSize: '0.62rem', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px', border: '2px solid var(--bg-white)',
+                    boxShadow: '0 1px 3px rgba(239,68,68,0.4)'
+                  }}>
+                    {unreadCount}
+                  </span>
+                ) : (
+                  <span style={{
+                    position: 'absolute', top: '5px', right: '5px',
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: '#94A3B8'
+                  }} />
+                )}
+              </button>
+
+              {notifOpen && (
+                <NotificationPanel
+                  tokenKey="studentToken"
+                  onClose={() => {
+                    setNotifOpen(false);
+                    fetchUnreadCount();
+                  }}
+                  onNavigate={(link) => navigate(link)}
+                />
+              )}
+            </div>
+
             <div className="topbar-divider" />
             <div className="topbar-user-menu" ref={menuRef}>
               <div className="topbar-user" onClick={() => setMenuOpen(o => !o)}>

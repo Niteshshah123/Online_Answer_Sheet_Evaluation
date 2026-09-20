@@ -79,12 +79,28 @@ const DownloadIcon = () => (
 
 export default function FacultyAssignmentsPage() {
   const [items, setItems] = useState([]);
+  const [doubts, setDoubts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [doubtLoading, setDoubtLoading] = useState(false);
   const [viewMode, setViewMode] = useState('card'); // 'card' | 'table'
   const [actionMessage, setActionMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Main Page Tab: 'assignments' | 'doubts'
+  const [activeMainTab, setActiveMainTab] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tab') === 'doubts' ? 'doubts' : 'assignments';
+  });
+
+  // Doubt Reply Modal State
+  const [selectedDoubt, setSelectedDoubt] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [replyStatus, setReplyStatus] = useState('RESOLVED');
+  const [updatedMarks, setUpdatedMarks] = useState('');
+  const [submittingReply, setSubmittingReply] = useState(false);
+  const [doubtFilterStatus, setDoubtFilterStatus] = useState('ALL');
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,8 +116,9 @@ export default function FacultyAssignmentsPage() {
   const load = async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem('facultyToken');
       const response = await axios.get('/api/faculty/assignments', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       setItems(response.data.data || []);
     } catch (error) {
@@ -112,7 +129,25 @@ export default function FacultyAssignmentsPage() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const loadDoubts = async () => {
+    try {
+      setDoubtLoading(true);
+      const token = localStorage.getItem('facultyToken');
+      const response = await axios.get('/api/faculty/doubts', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setDoubts(response.data.data || []);
+    } catch (error) {
+      console.error('Failed to load doubts:', error);
+    } finally {
+      setDoubtLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    loadDoubts();
+  }, []);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -126,6 +161,49 @@ export default function FacultyAssignmentsPage() {
       ...prev,
       [key]: !prev[key]
     }));
+  };
+
+  const openReplyModal = (doubt) => {
+    setSelectedDoubt(doubt);
+    setReplyText(doubt.teacherReply || '');
+    setReplyStatus(doubt.status === 'PENDING' ? 'RESOLVED' : doubt.status);
+    setUpdatedMarks(doubt.currentMark !== null && doubt.currentMark !== undefined ? String(doubt.currentMark) : '');
+  };
+
+  const closeReplyModal = () => {
+    setSelectedDoubt(null);
+    setReplyText('');
+    setUpdatedMarks('');
+  };
+
+  const handleReplySubmit = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim()) {
+      setErrorMessage('Teacher reply comment is required');
+      return;
+    }
+
+    try {
+      setSubmittingReply(true);
+      setErrorMessage('');
+      const token = localStorage.getItem('facultyToken');
+      await axios.post(`/api/faculty/doubts/${selectedDoubt._id}/reply`, {
+        teacherReply: replyText.trim(),
+        status: replyStatus,
+        updatedMarks: updatedMarks !== '' ? Number(updatedMarks) : null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setActionMessage(`Clarification submitted for ${selectedDoubt.studentName || 'Student'}! Status updated to ${replyStatus}.`);
+      closeReplyModal();
+      await loadDoubts();
+      await load();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to submit reply');
+    } finally {
+      setSubmittingReply(false);
+    }
   };
 
   // ----------------------------------------------------
@@ -235,7 +313,6 @@ export default function FacultyAssignmentsPage() {
   // Hierarchical Grouping: Department -> Subject -> Exam Cohorts
   // ----------------------------------------------------
   const hierarchicalData = useMemo(() => {
-    // Map: Dept -> Map: Subject -> Map: ExamId -> Exam Cohort Data
     const deptMap = new Map();
 
     for (const item of filteredItems) {
@@ -251,55 +328,56 @@ export default function FacultyAssignmentsPage() {
       if (!subMap.has(subKey)) {
         subMap.set(subKey, new Map());
       }
-      const examCohortMap = subMap.get(subKey);
+      const examMap = subMap.get(subKey);
 
-      if (!examCohortMap.has(examKey)) {
-        examCohortMap.set(examKey, {
+      if (!examMap.has(examKey)) {
+        examMap.set(examKey, {
           examId: item.examId,
           examName: item.examName,
-          examContext: item.examContext,
           course: item.course,
           subject: item.subject,
           semester: item.semester,
           section: item.section,
-          examType: item.examType,
-          finalSubmittedToAdmin: item.finalSubmittedToAdmin,
-          isPublished: item.isPublished,
+          examType: item.examType || 'Mid_Term',
+          targetScale: item.targetScale || 30,
           isCourseInCharge: item.isCourseInCharge,
           courseInChargeName: item.courseInChargeName,
-          handedOverFacultyIds: item.handedOverFacultyIds || [],
-          isHandedOver: item.isHandedOver,
+          finalSubmittedToAdmin: item.finalSubmittedToAdmin,
+          isPublished: item.isPublished,
           allCoEvaluatorsHandedOver: item.allCoEvaluatorsHandedOver,
+          isHandedOver: item.isHandedOver,
           sheets: []
         });
       }
 
-      examCohortMap.get(examKey).sheets.push(item);
+      examMap.get(examKey).sheets.push(item);
     }
 
-    // Transform into clean iterable array
     const hierarchy = [];
-    for (const [course, subjects] of deptMap) {
-      const subjectList = [];
+    for (const [course, subMap] of deptMap.entries()) {
       let deptSheets = 0;
       let deptCompleted = 0;
+      const subjectList = [];
 
-      for (const [subject, cohorts] of subjects) {
-        const cohortList = [];
+      for (const [subject, examMap] of subMap.entries()) {
         let subSheets = 0;
         let subCompleted = 0;
+        const cohortList = [];
 
-        for (const [, cohort] of cohorts) {
-          const completedInCohort = cohort.sheets.filter(s => s.status === 'COMPLETED' || s.status === 'LOCKED').length;
-          subSheets += cohort.sheets.length;
-          subCompleted += completedInCohort;
+        for (const cohort of examMap.values()) {
+          const completedCount = cohort.sheets.filter(s => ['COMPLETED', 'LOCKED', 'SUBMITTED'].includes(s.status)).length;
+          const totalCount = cohort.sheets.length;
+          const percent = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
           cohortList.push({
             ...cohort,
-            totalCount: cohort.sheets.length,
-            completedCount: completedInCohort,
-            percent: cohort.sheets.length ? Math.round((completedInCohort / cohort.sheets.length) * 100) : 0
+            completedCount,
+            totalCount,
+            percent
           });
+
+          subSheets += totalCount;
+          subCompleted += completedCount;
         }
 
         deptSheets += subSheets;
@@ -335,6 +413,26 @@ export default function FacultyAssignmentsPage() {
     setFilterStatus('ALL');
   };
 
+  const pendingDoubtsCount = useMemo(() => {
+    return doubts.filter(d => d.status === 'PENDING').length;
+  }, [doubts]);
+
+  const filteredDoubts = useMemo(() => {
+    return doubts.filter(d => {
+      if (doubtFilterStatus !== 'ALL' && d.status !== doubtFilterStatus) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        const matches =
+          (d.studentName || '').toLowerCase().includes(q) ||
+          (d.studentRegNo || '').toLowerCase().includes(q) ||
+          (d.examName || '').toLowerCase().includes(q) ||
+          (d.comment || '').toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      return true;
+    });
+  }, [doubts, doubtFilterStatus, searchQuery]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
@@ -342,548 +440,984 @@ export default function FacultyAssignmentsPage() {
       {errorMessage && <div className="alert alert-error">{errorMessage}</div>}
 
       {/* ────────────────────────────────────────────────────────
-          COMPACT MODERN FILTER & SEARCH TOOLBAR
+          MAIN TOP NAVIGATION TABS (VALUATION vs DOUBTS)
          ──────────────────────────────────────────────────────── */}
-      <div className="filter-toolbar">
-        {/* Top Row: Search input + View Switcher */}
-        <div className="filter-toolbar-top">
-          <div className="filter-search-box">
-            <span className="filter-search-icon">
-              <SearchIcon />
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderBottom: '2px solid var(--border)',
+        paddingBottom: '0',
+        gap: '16px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('assignments')}
+            style={{
+              padding: '10px 18px',
+              fontSize: '0.88rem',
+              fontWeight: activeMainTab === 'assignments' ? 800 : 600,
+              color: activeMainTab === 'assignments' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: `3px solid ${activeMainTab === 'assignments' ? 'var(--amrita-maroon)' : 'transparent'}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+              marginBottom: '-2px'
+            }}
+          >
+            <span>📋 Valuation Assignments</span>
+            <span style={{
+              padding: '2px 7px',
+              borderRadius: '10px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              background: activeMainTab === 'assignments' ? 'var(--accent-light)' : '#e2e8f0',
+              color: activeMainTab === 'assignments' ? 'var(--amrita-maroon)' : 'var(--text-secondary)'
+            }}>
+              {items.length}
             </span>
-            <input
-              className="filter-search-input"
-              placeholder="Search student name, roll no, subject, section..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                className="filter-search-clear"
-                onClick={() => setSearchQuery('')}
-                title="Clear search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          </button>
 
-          {/* View Mode Toggle Switcher */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>View:</span>
-            <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
-              <button
-                type="button"
-                onClick={() => setViewMode('card')}
-                style={{
-                  padding: '5px 12px',
-                  fontSize: '0.76rem',
-                  fontWeight: viewMode === 'card' ? 700 : 500,
-                  color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                  background: viewMode === 'card' ? 'var(--bg-white)' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <GridIcon /> Grouped Cohorts
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                style={{
-                  padding: '5px 12px',
-                  fontSize: '0.76rem',
-                  fontWeight: viewMode === 'table' ? 700 : 500,
-                  color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
-                  background: viewMode === 'table' ? 'var(--bg-white)' : 'transparent',
-                  border: 'none',
-                  borderRadius: '6px',
-                  boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                <ListIcon /> Flat Student List
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Row: Inline Filter Pills */}
-        <div className="filter-pills-row">
-          {/* Department */}
-          <div className={`filter-pill ${filterCourse !== 'ALL' ? 'active' : ''}`}>
-            <span className="filter-pill-label">Dept:</span>
-            <select
-              className="filter-pill-select"
-              value={filterCourse}
-              onChange={e => setFilterCourse(e.target.value)}
-            >
-              {uniqueCourses.map(c => (
-                <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Subject */}
-          <div className={`filter-pill ${filterSubject !== 'ALL' ? 'active' : ''}`}>
-            <span className="filter-pill-label">Subject:</span>
-            <select
-              className="filter-pill-select"
-              value={filterSubject}
-              onChange={e => setFilterSubject(e.target.value)}
-            >
-              {uniqueSubjects.map(s => (
-                <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Semester */}
-          <div className={`filter-pill ${filterSemester !== 'ALL' ? 'active' : ''}`}>
-            <span className="filter-pill-label">Sem:</span>
-            <select
-              className="filter-pill-select"
-              value={filterSemester}
-              onChange={e => setFilterSemester(e.target.value)}
-            >
-              {uniqueSemesters.map(sem => (
-                <option key={sem} value={sem}>{sem === 'ALL' ? 'All Sems' : `Sem ${sem}`}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Section */}
-          <div className={`filter-pill ${filterSection !== 'ALL' ? 'active' : ''}`}>
-            <span className="filter-pill-label">Sec:</span>
-            <select
-              className="filter-pill-select"
-              value={filterSection}
-              onChange={e => setFilterSection(e.target.value)}
-            >
-              {uniqueSections.map(sec => (
-                <option key={sec} value={sec}>{sec === 'ALL' ? 'All Secs' : `Sec ${sec}`}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status */}
-          <div className={`filter-pill ${filterStatus !== 'ALL' ? 'active' : ''}`}>
-            <span className="filter-pill-label">Status:</span>
-            <select
-              className="filter-pill-select"
-              value={filterStatus}
-              onChange={e => setFilterStatus(e.target.value)}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="PENDING">Pending</option>
-              <option value="DRAFT">Draft</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="LOCKED">Locked</option>
-              <option value="UNLOCK_REQUESTED">Unlock Requested</option>
-            </select>
-          </div>
-
-          {/* Reset Button (visible when active) */}
-          {(filterCourse !== 'ALL' || filterSubject !== 'ALL' || filterSemester !== 'ALL' || filterSection !== 'ALL' || filterStatus !== 'ALL' || searchQuery.trim()) && (
-            <button
-              type="button"
-              className="filter-reset-btn"
-              onClick={resetFilters}
-              title="Reset all search filters"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                <path d="M3 3v5h5"/>
-              </svg>
-              Reset Filters
-            </button>
-          )}
-
-          <span className="filter-stats-text">
-            Showing <strong>{filteredItems.length}</strong> of {items.length} scripts
-          </span>
+          <button
+            type="button"
+            onClick={() => setActiveMainTab('doubts')}
+            style={{
+              padding: '10px 18px',
+              fontSize: '0.88rem',
+              fontWeight: activeMainTab === 'doubts' ? 800 : 600,
+              color: activeMainTab === 'doubts' ? '#b45309' : 'var(--text-secondary)',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: `3px solid ${activeMainTab === 'doubts' ? '#b45309' : 'transparent'}`,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.15s ease',
+              marginBottom: '-2px'
+            }}
+          >
+            <span>✋ Student Doubts & Grievances</span>
+            <span style={{
+              padding: '2px 7px',
+              borderRadius: '10px',
+              fontSize: '0.72rem',
+              fontWeight: 800,
+              background: pendingDoubtsCount > 0 ? '#fef3c7' : '#e2e8f0',
+              color: pendingDoubtsCount > 0 ? '#b45309' : 'var(--text-secondary)',
+              border: pendingDoubtsCount > 0 ? '1px solid #fde68a' : 'none'
+            }}>
+              {pendingDoubtsCount > 0 ? `✋ ${pendingDoubtsCount} Pending` : doubts.length}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* ────────────────────────────────────────────────────────
-          3. MAIN CONTENT: GROUPED CARDS VS FLAT TABLE
-         ──────────────────────────────────────────────────────── */}
-      {loading ? (
-        <div className="card" style={{ textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Loading assigned valuation tasks...</p>
-        </div>
-      ) : filteredItems.length === 0 ? (
-        <div className="card" style={{ textAlign: 'center', padding: '50px 20px' }}>
-          <p style={{ fontWeight: 600, fontSize: '0.95rem', color: 'var(--text-secondary)' }}>
-            No assigned answer sheets match the selected filter criteria.
-          </p>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={resetFilters} style={{ marginTop: '8px' }}>
-            Clear Search &amp; Filters
-          </button>
-        </div>
-      ) : viewMode === 'card' ? (
+      {activeMainTab === 'doubts' ? (
         /* ────────────────────────────────────────────────────────
-            VIEW A: HIERARCHICAL GROUPED CARDS (DEFAULT)
+            VIEW: STUDENT DOUBTS & GRIEVANCES MANAGEMENT
            ──────────────────────────────────────────────────────── */
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {hierarchicalData.map(dept => {
-            const deptKey = `dept_${dept.course}`;
-            const isDeptCollapsed = Boolean(collapsedGroups[deptKey]);
-
-            return (
-              <div key={dept.course} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                {/* Level 1: Department Header Accordion */}
-                <div
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          
+          {/* Quick Filter Bar for Doubts */}
+          <div style={{
+            background: 'var(--bg-white)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginRight: '4px' }}>Filter:</span>
+              {[
+                ['ALL', `All (${doubts.length})`],
+                ['PENDING', `Pending (${doubts.filter(d => d.status === 'PENDING').length})`],
+                ['IN_REVIEW', `In Review (${doubts.filter(d => d.status === 'IN_REVIEW').length})`],
+                ['RESOLVED', `Resolved (${doubts.filter(d => d.status === 'RESOLVED').length})`],
+                ['REJECTED', `Reviewed (${doubts.filter(d => d.status === 'REJECTED').length})`]
+              ].map(([st, label]) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setDoubtFilterStatus(st)}
                   style={{
-                    padding: '14px 20px',
-                    background: 'var(--bg-subtle)',
-                    borderBottom: isDeptCollapsed ? 'none' : '1px solid var(--border)',
+                    padding: '5px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: doubtFilterStatus === st ? 700 : 500,
+                    border: doubtFilterStatus === st ? '1px solid #1E3A5F' : '1px solid var(--border)',
+                    background: doubtFilterStatus === st ? '#1E3A5F' : 'transparent',
+                    color: doubtFilterStatus === st ? '#fff' : 'var(--text-secondary)',
                     cursor: 'pointer',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
+                    transition: 'all 0.12s ease'
                   }}
-                  onClick={() => toggleGroupCollapse(deptKey)}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--amrita-maroon)' }}>
-                      Department: {dept.course}
-                    </h2>
-                    <span className="badge badge-gray" style={{ fontSize: '0.72rem' }}>
-                      {dept.subjects.length} Subject{dept.subjects.length > 1 ? 's' : ''}
-                    </span>
-                    <span className="badge badge-blue" style={{ fontSize: '0.72rem' }}>
-                      {dept.totalCount} Script{dept.totalCount > 1 ? 's' : ''}
-                    </span>
-                    <span className={`badge ${dept.completedCount === dept.totalCount ? 'badge-green' : 'badge-amber'}`} style={{ fontSize: '0.72rem' }}>
-                      {dept.completedCount} / {dept.totalCount} Evaluated ({dept.percent}%)
-                    </span>
-                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {isDeptCollapsed ? 'Expand Department' : 'Collapse Department'}
-                    </span>
-                    <ChevronIcon open={!isDeptCollapsed} />
-                  </div>
-                </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <input
+                type="text"
+                placeholder="Search doubts by student or comment..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.78rem',
+                  minWidth: '220px'
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={loadDoubts}
+                title="Refresh doubts"
+                style={{ fontSize: '0.78rem' }}
+              >
+                🔄 Refresh
+              </button>
+            </div>
+          </div>
 
-                {/* Level 2: Subjects within Department */}
-                {!isDeptCollapsed && (
-                  <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    {dept.subjects.map(sub => {
-                      const subKey = `sub_${dept.course}_${sub.subject}`;
-                      const isSubCollapsed = Boolean(collapsedGroups[subKey]);
+          {doubtLoading ? (
+            <div className="dash-loading" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="dash-loading-spinner" /> Loading student doubts...
+            </div>
+          ) : filteredDoubts.length === 0 ? (
+            <div className="card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎉</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Doubts Found</div>
+              <p style={{ fontSize: '0.8rem', maxWidth: '400px', margin: '6px auto 0 auto' }}>
+                {doubtFilterStatus !== 'ALL'
+                  ? `No doubts currently in ${doubtFilterStatus} status.`
+                  : 'No student doubts have been raised for your assigned papers yet.'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {filteredDoubts.map(d => {
+                const formattedDate = new Date(d.createdAt).toLocaleDateString('en-US', {
+                  month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                });
 
-                      return (
-                        <div key={sub.subject} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
-                          {/* Subject Header Accordion */}
-                          <div
-                            style={{
-                              padding: '10px 16px',
-                              background: '#f8fafc',
-                              borderBottom: isSubCollapsed ? 'none' : '1px solid var(--border)',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center'
-                            }}
-                            onClick={() => toggleGroupCollapse(subKey)}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <h3 style={{ margin: 0, fontSize: '0.92rem', fontWeight: 700 }}>
-                                {sub.subject}
-                              </h3>
-                              <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
-                                ({sub.cohorts.length} cohort section{sub.cohorts.length > 1 ? 's' : ''} &nbsp;·&nbsp; {sub.completedCount}/{sub.totalCount} evaluated)
-                              </span>
-                            </div>
+                const isPending = d.status === 'PENDING';
+                const isResolved = d.status === 'RESOLVED';
 
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                {isSubCollapsed ? 'Show Cohorts' : 'Hide Cohorts'}
-                              </span>
-                              <ChevronIcon open={!isSubCollapsed} />
-                            </div>
-                          </div>
-
-                          {/* Level 3: Individual Exam Cohort Section Cards */}
-                          {!isSubCollapsed && (
-                            <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '16px', background: 'white' }}>
-                              {sub.cohorts.map(cohort => (
-                                <div
-                                  key={cohort.examId}
-                                  style={{
-                                    border: '1px solid var(--border)',
-                                    borderRadius: 'var(--radius)',
-                                    padding: '14px',
-                                    background: 'var(--bg-subtle)'
-                                  }}
-                                >
-                                  {/* Cohort Header & Controls */}
-                                  <div style={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    flexWrap: 'wrap',
-                                    gap: '12px',
-                                    paddingBottom: '12px',
-                                    marginBottom: '12px',
-                                    borderBottom: '1px solid var(--border)'
-                                  }}>
-                                    <div>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                        <span className="badge badge-maroon" style={{ fontSize: '0.78rem', fontWeight: 700 }}>
-                                          Sem {cohort.semester} &nbsp;·&nbsp; Sec {cohort.section}
-                                        </span>
-                                        <span className="badge badge-gray" style={{ fontSize: '0.72rem' }}>
-                                          {cohort.examType}
-                                        </span>
-                                        <span className={`badge ${cohort.isCourseInCharge ? 'badge-maroon' : 'badge-blue'}`} style={{ fontSize: '0.72rem' }}>
-                                          {cohort.isCourseInCharge ? 'Course Handling Faculty (In-Charge)' : `Co-Evaluator (In-Charge: ${cohort.courseInChargeName || 'Faculty'})`}
-                                        </span>
-                                        <span className={`badge ${cohort.finalSubmittedToAdmin ? 'badge-amber' : 'badge-blue'}`} style={{ fontSize: '0.72rem' }}>
-                                          {cohort.finalSubmittedToAdmin ? 'Final Submitted to Admin (Locked)' : 'Valuation In-Progress'}
-                                        </span>
-                                        <span className={`badge ${cohort.isPublished ? 'badge-green' : 'badge-gray'}`} style={{ fontSize: '0.72rem' }}>
-                                          {cohort.isPublished ? 'Results Published for Student Review' : 'Student Review Unpublished'}
-                                        </span>
-                                      </div>
-
-                                      {/* Valuation Progress Bar */}
-                                      <div style={{ marginTop: '8px', maxWidth: '300px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '2px' }}>
-                                          <span>Valuation Progress:</span>
-                                          <span><strong>{cohort.completedCount}</strong> / {cohort.totalCount} scripts ({cohort.percent}%)</span>
-                                        </div>
-                                        <div style={{ width: '100%', height: '5px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                                          <div style={{ width: `${cohort.percent}%`, height: '100%', background: cohort.percent === 100 ? '#16a34a' : 'var(--amrita-maroon)', transition: 'width 0.3s' }} />
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Actions: Restricted to Course Handling Faculty */}
-                                    {cohort.isCourseInCharge ? (
-                                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                        {/* Publish for Student Review */}
-                                        <button
-                                          type="button"
-                                          className={`btn btn-sm ${cohort.isPublished ? 'btn-danger' : 'btn-success'}`}
-                                          disabled={cohort.finalSubmittedToAdmin || (!cohort.isPublished && (cohort.completedCount < cohort.totalCount || !cohort.allCoEvaluatorsHandedOver))}
-                                          onClick={() => handleTogglePublish(cohort.examId)}
-                                          style={{
-                                            fontSize: '0.74rem', padding: '5px 10px',
-                                            opacity: cohort.finalSubmittedToAdmin || (!cohort.isPublished && (cohort.completedCount < cohort.totalCount || !cohort.allCoEvaluatorsHandedOver)) ? 0.5 : 1,
-                                            cursor: cohort.finalSubmittedToAdmin || (!cohort.isPublished && (cohort.completedCount < cohort.totalCount || !cohort.allCoEvaluatorsHandedOver)) ? 'not-allowed' : 'pointer'
-                                          }}
-                                          title={!cohort.isPublished && (cohort.completedCount < cohort.totalCount || !cohort.allCoEvaluatorsHandedOver) ? (!cohort.allCoEvaluatorsHandedOver ? 'Cannot publish: Co-faculty has not handed over paper evaluations for this section yet.' : 'Cannot publish: You must complete 100% of your assigned questions first.') : ''}
-                                        >
-                                          {cohort.isPublished ? 'Unpublish Student Review' : 'Publish for Student Review'}
-                                        </button>
-
-                                        {/* Submit to Admin */}
-                                        <button
-                                          type="button"
-                                          className="btn btn-sm btn-primary"
-                                          onClick={() => handleFinalSubmit(cohort.examId)}
-                                          disabled={cohort.finalSubmittedToAdmin || !cohort.isPublished}
-                                          style={{
-                                            fontSize: '0.74rem', padding: '5px 10px',
-                                            opacity: (cohort.finalSubmittedToAdmin || !cohort.isPublished) ? 0.5 : 1,
-                                            cursor: (cohort.finalSubmittedToAdmin || !cohort.isPublished) ? 'not-allowed' : 'pointer'
-                                          }}
-                                          title={!cohort.isPublished ? 'You must Publish for Student Review first before submitting to Admin' : ''}
-                                        >
-                                          {cohort.finalSubmittedToAdmin ? 'Submitted to Admin' : 'Submit to Admin'}
-                                        </button>
-
-                                        {/* Export AUMS Excel */}
-                                        <button
-                                          type="button"
-                                          className="btn btn-sm btn-secondary"
-                                          onClick={() => handleExportAUMS(cohort.examId, cohort.examName)}
-                                          disabled={!cohort.finalSubmittedToAdmin}
-                                          style={{
-                                            fontSize: '0.74rem', padding: '5px 10px',
-                                            opacity: !cohort.finalSubmittedToAdmin ? 0.5 : 1,
-                                            cursor: !cohort.finalSubmittedToAdmin ? 'not-allowed' : 'pointer'
-                                          }}
-                                          title={!cohort.finalSubmittedToAdmin ? 'You must Submit marks to Admin first before downloading Excel report' : ''}
-                                        >
-                                          <DownloadIcon /> Export AUMS Excel
-                                        </button>
-                                      </div>
-                                    ) : (
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                        {cohort.isHandedOver ? (
-                                          <span className="badge badge-green" style={{ padding: '6px 12px', fontSize: '0.74rem' }}>
-                                            Handed Over to Course In-Charge ({cohort.courseInChargeName || 'Course Handling Faculty'}) ✅
-                                          </span>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            className="btn btn-sm btn-primary"
-                                            onClick={() => handleHandover(cohort.examId)}
-                                            disabled={cohort.completedCount < cohort.totalCount}
-                                            style={{
-                                              fontSize: '0.74rem', padding: '6px 12px',
-                                              opacity: cohort.completedCount < cohort.totalCount ? 0.5 : 1,
-                                              cursor: cohort.completedCount < cohort.totalCount ? 'not-allowed' : 'pointer'
-                                            }}
-                                            title={cohort.completedCount < cohort.totalCount ? 'All assigned section papers must be 100% evaluated before handing over' : ''}
-                                          >
-                                            Handover Evaluation to Course In-Charge ({cohort.courseInChargeName || 'Course Handling Faculty'}) 🤝
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Answer Sheets Table */}
-                                  <table className="data-table" style={{ background: 'white' }}>
-                                    <thead>
-                                      <tr>
-                                        <th>Student</th>
-                                        <th>Assigned Questions</th>
-                                        <th>Status</th>
-                                        <th style={{ textAlign: 'right' }}>Action</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {cohort.sheets.map(item => (
-                                        <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
-                                          <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                              <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
-                                              <div>
-                                                <strong>{item.studentName}</strong>
-                                                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                                                  {item.registrationNumber}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </td>
-                                          <td><span className="badge badge-maroon">{item.questionRange}</span></td>
-                                          <td><StatusBadge status={item.status} /></td>
-                                          <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-                                            <button
-                                              type="button"
-                                              className="btn btn-primary btn-sm"
-                                              style={{ fontSize: '0.74rem', padding: '3px 9px' }}
-                                              onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
-                                            >
-                                              Open Sheet
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                return (
+                  <div
+                    key={d._id}
+                    style={{
+                      background: '#fff',
+                      border: `1px solid ${isPending ? '#fde68a' : 'var(--border)'}`,
+                      borderLeft: `4px solid ${isPending ? '#d97706' : isResolved ? '#16a34a' : '#2563eb'}`,
+                      borderRadius: '10px',
+                      padding: '16px 18px',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.03)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div className="fac-avatar" style={{ background: '#1E3A5F', color: '#fff' }}>
+                          {d.studentName?.charAt(0)}
                         </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* ────────────────────────────────────────────────────────
-            VIEW B: FLAT STUDENT LIST TABLE
-           ──────────────────────────────────────────────────────── */
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table className="data-table" style={{ margin: 0, minWidth: '950px' }}>
-              <thead>
-                <tr>
-                  <th>Student</th>
-                  <th>Department &amp; Subject</th>
-                  <th>Cohort</th>
-                  <th>Assigned Qs</th>
-                  <th>Valuation Status</th>
-                  <th>Admin Lock</th>
-                  <th style={{ textAlign: 'right' }}>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredItems.map(item => (
-                  <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
-                    {/* Student */}
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
                         <div>
-                          <strong>{item.studentName}</strong>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
-                            {item.registrationNumber}
+                          <div style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+                            {d.studentName} <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>({d.studentRegNo})</span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {d.examName} &nbsp;•&nbsp; {d.examContext}
                           </div>
                         </div>
                       </div>
-                    </td>
 
-                    {/* Subject & Department */}
-                    <td>
-                      <strong>{item.subject}</strong>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        Dept: {item.course}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          fontWeight: 700,
+                          background: '#1E3A5F',
+                          color: '#fff'
+                        }}>
+                          {d.questionNumber ? `Question ${d.questionNumber}` : 'General Paper Query'}
+                        </span>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 800,
+                          background: isPending ? '#fef3c7' : isResolved ? '#dcfce7' : '#eff6ff',
+                          color: isPending ? '#b45309' : isResolved ? '#15803d' : '#1d4ed8',
+                          border: `1px solid ${isPending ? '#fde68a' : isResolved ? '#bbf7d0' : '#bfdbfe'}`
+                        }}>
+                          {d.status}
+                        </span>
                       </div>
-                    </td>
+                    </div>
 
-                    {/* Cohort */}
-                    <td>
-                      <span className="badge badge-gray" style={{ fontSize: '0.72rem' }}>
-                        Sem {item.semester} &nbsp;·&nbsp; Sec {item.section}
-                      </span>
-                    </td>
+                    {/* Doubt details & comment */}
+                    <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: '8px', fontSize: '0.82rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        <span>CATEGORY: {d.category}</span>
+                        <span>Raised on {formattedDate}</span>
+                      </div>
+                      <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>
+                        "{d.comment}"
+                      </div>
+                    </div>
 
-                    {/* Assigned Questions */}
-                    <td>
-                      <span className="badge badge-maroon">{item.questionRange}</span>
-                    </td>
+                    {/* If question mark info exists */}
+                    {d.questionNumber && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                        <div>
+                          Awarded Marks: <strong style={{ color: 'var(--text-primary)' }}>{d.currentMark ?? '—'}</strong> / {d.maxMark ?? '—'}
+                        </div>
+                      </div>
+                    )}
 
-                    {/* Valuation Status */}
-                    <td>
-                      <StatusBadge status={item.status} />
-                    </td>
+                    {/* Teacher Reply if already responded */}
+                    {d.teacherReply && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '10px 14px', borderRadius: '8px', fontSize: '0.8rem', color: '#166534' }}>
+                        <div style={{ fontWeight: 800, fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '3px' }}>
+                          ✓ Your Reply:
+                        </div>
+                        <div>{d.teacherReply}</div>
+                      </div>
+                    )}
 
-                    {/* Admin Lock Status */}
-                    <td>
-                      <span className={`badge ${item.finalSubmittedToAdmin ? 'badge-amber' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
-                        {item.finalSubmittedToAdmin ? 'Locked' : 'Open'}
-                      </span>
-                    </td>
-
-                    {/* Action Button */}
-                    <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                    {/* Action Bar */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
+                      {d.sheetId && (
+                        <button
+                          type="button"
+                          className="btn btn-secondary btn-sm"
+                          style={{ fontSize: '0.75rem' }}
+                          onClick={() => navigate(`/faculty/evaluate/${d.sheetId}`)}
+                        >
+                          🔍 Open Paper
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-primary btn-sm"
-                        style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                        onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
+                        style={{ fontSize: '0.75rem', background: '#1E3A5F', display: 'flex', alignItems: 'center', gap: '5px' }}
+                        onClick={() => openReplyModal(d)}
                       >
-                        Open Sheet
+                        <span>💬</span>
+                        <span>{d.teacherReply ? 'Edit Response / Marks' : 'Review & Reply'}</span>
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+        </div>
+      ) : (
+        /* ────────────────────────────────────────────────────────
+            VIEW A & B: VALUATION ASSIGNMENTS (EXISTING FLOW)
+           ──────────────────────────────────────────────────────── */
+        <>
+          {/* ────────────────────────────────────────────────────────
+              COMPACT MODERN FILTER & SEARCH TOOLBAR
+             ──────────────────────────────────────────────────────── */}
+          <div className="filter-toolbar">
+            {/* Top Row: Search input + View Switcher */}
+            <div className="filter-toolbar-top">
+              <div className="filter-search-box">
+                <span className="filter-search-icon">
+                  <SearchIcon />
+                </span>
+                <input
+                  className="filter-search-input"
+                  placeholder="Search student name, roll no, subject, section..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    className="filter-search-clear"
+                    onClick={() => setSearchQuery('')}
+                    title="Clear search"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              {/* View Mode Toggle Switcher */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em' }}>View:</span>
+                <div style={{ display: 'inline-flex', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-subtle)', padding: '2px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('card')}
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '0.76rem',
+                      fontWeight: viewMode === 'card' ? 700 : 500,
+                      color: viewMode === 'card' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                      background: viewMode === 'card' ? 'var(--bg-white)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '6px',
+                      boxShadow: viewMode === 'card' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <GridIcon /> Grouped Cohorts
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('table')}
+                    style={{
+                      padding: '5px 12px',
+                      fontSize: '0.76rem',
+                      fontWeight: viewMode === 'table' ? 700 : 500,
+                      color: viewMode === 'table' ? 'var(--amrita-maroon)' : 'var(--text-secondary)',
+                      background: viewMode === 'table' ? 'var(--bg-white)' : 'transparent',
+                      border: 'none',
+                      borderRadius: '6px',
+                      boxShadow: viewMode === 'table' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <ListIcon /> Flat Student List
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row: Inline Filter Pills */}
+            <div className="filter-pills-row">
+              {/* Department */}
+              <div className={`filter-pill ${filterCourse !== 'ALL' ? 'active' : ''}`}>
+                <span className="filter-pill-label">Dept:</span>
+                <select
+                  className="filter-pill-select"
+                  value={filterCourse}
+                  onChange={e => setFilterCourse(e.target.value)}
+                >
+                  {uniqueCourses.map(c => (
+                    <option key={c} value={c}>{c === 'ALL' ? 'All Depts' : c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Subject */}
+              <div className={`filter-pill ${filterSubject !== 'ALL' ? 'active' : ''}`}>
+                <span className="filter-pill-label">Subject:</span>
+                <select
+                  className="filter-pill-select"
+                  value={filterSubject}
+                  onChange={e => setFilterSubject(e.target.value)}
+                >
+                  {uniqueSubjects.map(s => (
+                    <option key={s} value={s}>{s === 'ALL' ? 'All Subjects' : s}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Semester */}
+              <div className={`filter-pill ${filterSemester !== 'ALL' ? 'active' : ''}`}>
+                <span className="filter-pill-label">Sem:</span>
+                <select
+                  className="filter-pill-select"
+                  value={filterSemester}
+                  onChange={e => setFilterSemester(e.target.value)}
+                >
+                  {uniqueSemesters.map(s => (
+                    <option key={s} value={s}>{s === 'ALL' ? 'All Semesters' : `Sem ${s}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Section */}
+              <div className={`filter-pill ${filterSection !== 'ALL' ? 'active' : ''}`}>
+                <span className="filter-pill-label">Sec:</span>
+                <select
+                  className="filter-pill-select"
+                  value={filterSection}
+                  onChange={e => setFilterSection(e.target.value)}
+                >
+                  {uniqueSections.map(s => (
+                    <option key={s} value={s}>{s === 'ALL' ? 'All Sections' : `Sec ${s}`}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status */}
+              <div className={`filter-pill ${filterStatus !== 'ALL' ? 'active' : ''}`}>
+                <span className="filter-pill-label">Status:</span>
+                <select
+                  className="filter-pill-select"
+                  value={filterStatus}
+                  onChange={e => setFilterStatus(e.target.value)}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending</option>
+                  <option value="DRAFT">In Progress (Draft)</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="LOCKED">Locked</option>
+                  <option value="UNLOCK_REQUESTED">Unlock Requested</option>
+                </select>
+              </div>
+
+              {/* Reset Action */}
+              {(filterCourse !== 'ALL' || filterSubject !== 'ALL' || filterSemester !== 'ALL' || filterSection !== 'ALL' || filterStatus !== 'ALL' || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="filter-reset-btn"
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Body Content */}
+          {loading ? (
+            <div className="dash-loading" style={{ minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="dash-loading-spinner" /> Loading assignments...
+            </div>
+          ) : filteredItems.length === 0 ? (
+            <div className="card" style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+              <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)' }}>No Matching Answer Sheets</div>
+              <p style={{ fontSize: '0.8rem', maxWidth: '400px', margin: '6px auto 16px auto' }}>
+                No evaluated or pending answer sheets match your active filters or search terms.
+              </p>
+              <button type="button" onClick={resetFilters} className="btn btn-secondary btn-sm">
+                Clear Filters
+              </button>
+            </div>
+          ) : viewMode === 'card' ? (
+            /* ────────────────────────────────────────────────────────
+                VIEW A: HIERARCHICAL ACCORDION CARDS
+               ──────────────────────────────────────────────────────── */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {hierarchicalData.map(deptGroup => {
+                const deptKey = `dept_${deptGroup.course}`;
+                const isDeptCollapsed = !!collapsedGroups[deptKey];
+
+                return (
+                  <div
+                    key={deptKey}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: '12px',
+                      background: 'var(--bg-white)',
+                      overflow: 'hidden',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                  >
+                    {/* Level 1: Department Header */}
+                    <div
+                      onClick={() => toggleGroupCollapse(deptKey)}
+                      style={{
+                        padding: '14px 18px',
+                        background: 'linear-gradient(90deg, #f8fafc 0%, #f1f5f9 100%)',
+                        borderBottom: isDeptCollapsed ? 'none' : '1px solid var(--border)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        userSelect: 'none'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <ChevronIcon open={!isDeptCollapsed} />
+                        <div>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            DEPARTMENT
+                          </span>
+                          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                            {deptGroup.course}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                            {deptGroup.completedCount} / {deptGroup.totalCount} Evaluated
+                          </span>
+                          <div style={{ width: '120px', height: '6px', background: '#e2e8f0', borderRadius: '3px', marginTop: '4px', overflow: 'hidden' }}>
+                            <div style={{ width: `${deptGroup.percent}%`, height: '100%', background: 'var(--amrita-maroon)', borderRadius: '3px' }} />
+                          </div>
+                        </div>
+                        <span className="badge badge-gray">{deptGroup.subjects.length} Subjects</span>
+                      </div>
+                    </div>
+
+                    {/* Level 1 Body (Subjects) */}
+                    {!isDeptCollapsed && (
+                      <div style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '12px', background: '#fafbfc' }}>
+                        {deptGroup.subjects.map(subGroup => {
+                          const subKey = `sub_${deptGroup.course}_${subGroup.subject}`;
+                          const isSubCollapsed = !!collapsedGroups[subKey];
+
+                          return (
+                            <div
+                              key={subKey}
+                              style={{
+                                border: '1px solid var(--border)',
+                                borderRadius: '10px',
+                                background: 'var(--bg-white)',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {/* Level 2: Subject Header */}
+                              <div
+                                onClick={() => toggleGroupCollapse(subKey)}
+                                style={{
+                                  padding: '12px 16px',
+                                  background: 'var(--bg-white)',
+                                  borderBottom: isSubCollapsed ? 'none' : '1px solid var(--border)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  userSelect: 'none'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <ChevronIcon open={!isSubCollapsed} />
+                                  <div>
+                                    <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--amrita-maroon)', textTransform: 'uppercase' }}>
+                                      COURSE SUBJECT
+                                    </span>
+                                    <h4 style={{ margin: 0, fontSize: '0.94rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                                      {subGroup.subject}
+                                    </h4>
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                  <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                                    {subGroup.completedCount} / {subGroup.totalCount} Sheets ({subGroup.percent}%)
+                                  </span>
+                                  <span className="badge badge-blue">{subGroup.cohorts.length} Cohorts</span>
+                                </div>
+                              </div>
+
+                              {/* Level 2 Body (Exam Cohorts) */}
+                              {!isSubCollapsed && (
+                                <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                  {subGroup.cohorts.map(cohort => (
+                                    <div
+                                      key={cohort.examId}
+                                      style={{
+                                        border: '1px solid var(--border)',
+                                        borderRadius: '8px',
+                                        background: '#ffffff',
+                                        padding: '14px',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                                      }}
+                                    >
+                                      {/* Cohort Header & Valuation Actions */}
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        flexWrap: 'wrap',
+                                        gap: '10px',
+                                        borderBottom: '1px solid #f1f5f9',
+                                        paddingBottom: '10px',
+                                        marginBottom: '10px'
+                                      }}>
+                                        <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '0.88rem', color: 'var(--text-primary)' }}>
+                                              Sem {cohort.semester} &nbsp;·&nbsp; Section {cohort.section}
+                                            </span>
+                                            <span className="badge badge-gray">{cohort.examType}</span>
+                                            {cohort.isCourseInCharge && (
+                                              <span className="badge badge-maroon" style={{ fontSize: '0.68rem', fontWeight: 700 }}>
+                                                ★ In-Charge Faculty
+                                              </span>
+                                            )}
+                                          </div>
+                                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                            Scale: {cohort.targetScale || 30} Marks &nbsp;|&nbsp; {cohort.completedCount} of {cohort.sheets.length} Evaluated ({cohort.percent}%)
+                                          </div>
+                                        </div>
+
+                                        {/* Action Buttons for Valuation & In-Charge */}
+                                        {cohort.isCourseInCharge && (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            <button
+                                              type="button"
+                                              className="btn btn-secondary btn-sm"
+                                              style={{ fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }}
+                                              onClick={() => handleExportAUMS(cohort.examId, `${cohort.subject}_${cohort.section}`)}
+                                              title="Download AUMS Excel score sheet"
+                                            >
+                                              <DownloadIcon /> Export AUMS
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              className="btn btn-secondary btn-sm"
+                                              style={{
+                                                fontSize: '0.74rem',
+                                                padding: '4px 8px',
+                                                borderColor: cohort.isPublished ? '#16a34a' : 'var(--border)',
+                                                color: cohort.isPublished ? '#16a34a' : 'var(--text-primary)'
+                                              }}
+                                              onClick={() => handleTogglePublish(cohort.examId)}
+                                              title="Allow students to view evaluated marks"
+                                            >
+                                              {cohort.isPublished ? '✓ Published to Students' : '👁 Publish Results'}
+                                            </button>
+
+                                            {!cohort.finalSubmittedToAdmin ? (
+                                              <button
+                                                type="button"
+                                                className="btn btn-primary btn-sm"
+                                                style={{ fontSize: '0.74rem', padding: '4px 8px' }}
+                                                onClick={() => handleFinalSubmit(cohort.examId)}
+                                                title="Lock and submit final marks to Admin"
+                                              >
+                                                🔒 Final Submit
+                                              </button>
+                                            ) : (
+                                              <span className="badge badge-amber" style={{ fontSize: '0.72rem' }}>
+                                                🔒 Locked & Submitted
+                                              </span>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Answer Sheets Table */}
+                                      <table className="data-table" style={{ background: 'white' }}>
+                                        <thead>
+                                          <tr>
+                                            <th>Student</th>
+                                            <th>Assigned Questions</th>
+                                            <th>Status</th>
+                                            <th style={{ textAlign: 'right' }}>Action</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {cohort.sheets.map(item => (
+                                            <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
+                                              <td>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                  <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
+                                                  <div>
+                                                    <strong>{item.studentName}</strong>
+                                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                                      {item.registrationNumber}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </td>
+                                              <td><span className="badge badge-maroon">{item.questionRange}</span></td>
+                                              <td><StatusBadge status={item.status} /></td>
+                                              <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-primary btn-sm"
+                                                  style={{ fontSize: '0.74rem', padding: '3px 9px' }}
+                                                  onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
+                                                >
+                                                  Open Sheet
+                                                </button>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* ────────────────────────────────────────────────────────
+                VIEW B: FLAT STUDENT LIST TABLE
+               ──────────────────────────────────────────────────────── */
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="data-table" style={{ margin: 0, minWidth: '950px' }}>
+                  <thead>
+                    <tr>
+                      <th>Student</th>
+                      <th>Department &amp; Subject</th>
+                      <th>Cohort</th>
+                      <th>Assigned Qs</th>
+                      <th>Valuation Status</th>
+                      <th>Admin Lock</th>
+                      <th style={{ textAlign: 'right' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredItems.map(item => (
+                      <tr key={item.sheetId} style={{ cursor: 'pointer' }} onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}>
+                        {/* Student */}
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="fac-avatar">{item.studentName?.charAt(0)}</div>
+                            <div>
+                              <strong>{item.studentName}</strong>
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                                {item.registrationNumber}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Subject & Department */}
+                        <td>
+                          <strong>{item.subject}</strong>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            Dept: {item.course}
+                          </div>
+                        </td>
+
+                        {/* Cohort */}
+                        <td>
+                          <span className="badge badge-gray" style={{ fontSize: '0.72rem' }}>
+                            Sem {item.semester} &nbsp;·&nbsp; Sec {item.section}
+                          </span>
+                        </td>
+
+                        {/* Assigned Questions */}
+                        <td>
+                          <span className="badge badge-maroon">{item.questionRange}</span>
+                        </td>
+
+                        {/* Valuation Status */}
+                        <td>
+                          <StatusBadge status={item.status} />
+                        </td>
+
+                        {/* Admin Lock Status */}
+                        <td>
+                          <span className={`badge ${item.finalSubmittedToAdmin ? 'badge-amber' : 'badge-blue'}`} style={{ fontSize: '0.7rem' }}>
+                            {item.finalSubmittedToAdmin ? 'Locked' : 'Open'}
+                          </span>
+                        </td>
+
+                        {/* Action Button */}
+                        <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                            onClick={() => navigate(`/faculty/evaluate/${item.sheetId}`)}
+                          >
+                            Open Sheet
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ────────────────────────────────────────────────────────
+          FACULTY DOUBT REPLY & MARK ADJUSTMENT MODAL
+         ──────────────────────────────────────────────────────── */}
+      {selectedDoubt && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '540px',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.15)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              background: '#1E3A5F',
+              color: '#fff',
+              padding: '16px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Review Student Doubt</h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#93c5fd' }}>
+                  {selectedDoubt.studentName} ({selectedDoubt.studentRegNo}) &nbsp;•&nbsp; {selectedDoubt.examName}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeReplyModal}
+                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleReplySubmit} style={{ padding: '20px' }}>
+              {/* Doubt summary banner */}
+              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {selectedDoubt.questionNumber ? `Question ${selectedDoubt.questionNumber}` : 'General Query'}
+                  </span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>Category: {selectedDoubt.category}</span>
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', marginBottom: '6px' }}>
+                  "{selectedDoubt.comment}"
+                </div>
+                {selectedDoubt.questionNumber && (
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                    Current Marks: <strong>{selectedDoubt.currentMark ?? '—'}</strong> / {selectedDoubt.maxMark ?? '—'}
+                  </div>
+                )}
+              </div>
+
+              {/* Adjust Question Marks if applicable */}
+              {selectedDoubt.questionNumber && (
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    Adjust / Update Question {selectedDoubt.questionNumber} Marks (Optional)
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      max={selectedDoubt.maxMark || 100}
+                      value={updatedMarks}
+                      onChange={(e) => setUpdatedMarks(e.target.value)}
+                      placeholder="Enter new marks"
+                      style={{
+                        width: '130px',
+                        padding: '8px 10px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border)',
+                        fontSize: '0.85rem',
+                        fontWeight: 700
+                      }}
+                    />
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Max: {selectedDoubt.maxMark ?? '—'} marks
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Resolution Status */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Resolution Status
+                </label>
+                <select
+                  value={replyStatus}
+                  onChange={(e) => setReplyStatus(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.82rem',
+                    fontWeight: 600
+                  }}
+                >
+                  <option value="RESOLVED">Resolved (Accepted & Answered / Marks Updated)</option>
+                  <option value="REJECTED">Reviewed (Marks Remain As Is)</option>
+                  <option value="IN_REVIEW">Under Review / Further Checking</option>
+                </select>
+              </div>
+
+              {/* Teacher Reply / Explanation */}
+              <div style={{ marginBottom: '18px' }}>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Teacher Reply & Explanation <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Type your explanation or remark to the student..."
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    fontSize: '0.82rem',
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+
+              {/* Buttons */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={closeReplyModal}
+                  disabled={submittingReply}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={submittingReply}
+                  style={{ background: '#1E3A5F' }}
+                >
+                  {submittingReply ? 'Saving...' : 'Submit Resolution'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

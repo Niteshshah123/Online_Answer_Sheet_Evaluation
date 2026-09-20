@@ -42,4 +42,32 @@ router.post('/change-password', studentAuthMiddleware, async (req, res, next) =>
   }
 });
 
+// Raise Hand / Doubts
+const doubtService = require('../services/DoubtService');
+
+router.post('/doubts', studentAuthMiddleware, async (req, res, next) => {
+  try {
+    const { sheetId, questionNumber, category, comment } = req.body;
+    const result = await doubtService.raiseDoubt({
+      studentEmail: req.user.email,
+      sheetId,
+      questionNumber,
+      category,
+      comment
+    });
+    res.json({ success: true, message: 'Doubt submitted successfully', data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/doubts/sheet/:sheetId', studentAuthMiddleware, async (req, res, next) => {
+  try {
+    const result = await doubtService.getStudentDoubts(req.user.email, req.params.sheetId);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;

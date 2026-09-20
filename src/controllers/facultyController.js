@@ -156,6 +156,33 @@ router.post('/change-password', facultyAuthMiddleware, async (req, res, next) =>
   }
 });
 
+router.get('/doubts', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const doubtService = require('../services/DoubtService');
+    const result = await doubtService.getFacultyDoubts(req.user.email, req.query.status);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/doubts/:doubtId/reply', facultyAuthMiddleware, async (req, res, next) => {
+  try {
+    const doubtService = require('../services/DoubtService');
+    const { teacherReply, status, updatedMarks } = req.body;
+    const result = await doubtService.replyDoubt({
+      facultyEmail: req.user.email,
+      doubtId: req.params.doubtId,
+      teacherReply,
+      status,
+      updatedMarks
+    });
+    res.json({ success: true, data: result });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.put('/profile', facultyAuthMiddleware, async (req, res, next) => {
   try {
     const AppError = require('../exceptions/AppError');

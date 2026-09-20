@@ -108,11 +108,14 @@ export default function FacultyEvaluationPage() {
 
   const [finalSubmittedToAdmin, setFinalSubmittedToAdmin] = useState(false);
 
+  const [sheetDoubts, setSheetDoubts] = useState([]);
+
   const load = async () => {
     try {
       setLoading(true); setErrorMessage('');
+      const token = localStorage.getItem('facultyToken');
       const res = await axios.get(`/api/faculty/evaluations?sheetId=${sheetId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const d = res.data.data || {};
       setRows(d.evaluations || []);
@@ -125,6 +128,17 @@ export default function FacultyEvaluationPage() {
       setCoEvaluatorMax(d.coEvaluatorMax || 0);
       setFinalSubmittedToAdmin(Boolean(d.finalSubmittedToAdmin));
       if (d.convertedScale) setTargetScale(d.convertedScale);
+
+      // Fetch doubts for this sheet
+      try {
+        const doubtsRes = await axios.get('/api/faculty/doubts', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const allDoubts = doubtsRes.data.data || [];
+        setSheetDoubts(allDoubts.filter(db => String(db.sheetId) === String(sheetId)));
+      } catch (errDb) {
+        console.error('Failed to load doubts for sheet:', errDb);
+      }
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'Unable to load evaluation sheet.');
     } finally { setLoading(false); }
@@ -531,6 +545,48 @@ export default function FacultyEvaluationPage() {
       {errorMessage && (
         <div style={{ padding: '8px 20px', background: 'var(--error-bg)', color: 'var(--error)', borderBottom: '1px solid var(--error-border)', fontSize: '0.8rem', fontWeight: 500, flexShrink: 0 }}>
           {errorMessage}
+        </div>
+      )}
+
+      {/* Student Doubts Notice on this paper */}
+      {sheetDoubts.length > 0 && (
+        <div style={{
+          padding: '10px 20px',
+          background: '#fffbeb',
+          borderBottom: '1px solid #fde68a',
+          color: '#92400e',
+          fontSize: '0.8rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1rem' }}>✋</span>
+            <span>
+              <strong>Student Query / Doubt Raised:</strong>{' '}
+              {sheetDoubts.map(d => `${d.questionNumber ? `Q${d.questionNumber}` : 'General'}: "${d.comment}" (${d.status})`).join(' | ')}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/faculty/assignments?tab=doubts')}
+            className="btn btn-xs"
+            style={{
+              background: '#b45309',
+              color: '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Manage in Doubts Tab ➔
+          </button>
         </div>
       )}
 

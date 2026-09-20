@@ -92,13 +92,19 @@ const FilterSelect = ({ label, value, options, onChange }) => (
 export default function FacultyDashboardPage() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
+  const [doubts, setDoubts] = useState([]);
   const [filters, setFilters] = useState({ dept: 'ALL', subject: 'ALL', section: 'ALL', status: 'ALL' });
   const [activeMenuSheetId, setActiveMenuSheetId] = useState(null);
 
   useEffect(() => {
+    const token = localStorage.getItem('facultyToken');
     axios.get('/api/faculty/dashboard', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+      headers: { Authorization: `Bearer ${token}` }
     }).then(r => setDashboard(r.data.data)).catch(console.error);
+
+    axios.get('/api/faculty/doubts', {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => setDoubts(r.data.data || [])).catch(console.error);
   }, []);
 
   // Derive unique filter options dynamically from data
@@ -227,6 +233,64 @@ export default function FacultyDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ─────────────────────────────────────────
+          STUDENT DOUBTS NOTIFICATION BANNER (IF ANY)
+      ───────────────────────────────────────── */}
+      {doubts.some(d => d.status === 'PENDING') && (
+        <div style={{
+          background: 'linear-gradient(90deg, #fffbeb 0%, #fef3c7 100%)',
+          border: '1px solid #fde68a',
+          borderRadius: '12px',
+          padding: '14px 20px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '38px', height: '38px', borderRadius: '50%',
+              background: '#d97706', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '1.2rem', flexShrink: 0
+            }}>
+              ✋
+            </div>
+            <div>
+              <div style={{ fontWeight: 800, fontSize: '0.92rem', color: '#92400e' }}>
+                {doubts.filter(d => d.status === 'PENDING').length} Student Query / Doubt Pending Review
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#b45309' }}>
+                Students have requested clarification on evaluated questions or score totaling.
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn"
+            onClick={() => navigate('/faculty/assignments?tab=doubts')}
+            style={{
+              background: '#b45309',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '0.78rem',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            Review Queries ➔
+          </button>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────
           4 STAT CARDS ROW

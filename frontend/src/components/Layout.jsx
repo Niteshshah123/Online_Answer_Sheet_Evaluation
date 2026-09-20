@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useTheme } from '../context/ThemeContext';
 import ProfileModal from './ProfileModal';
 import CalendarPanel from './CalendarPanel';
+import NotificationPanel from './NotificationPanel';
 
 const NAV_SECTIONS = [
   {
@@ -71,13 +72,26 @@ export default function Layout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [adminName, setAdminName] = useState('Administrator');
   const [adminEmail, setAdminEmail] = useState('');
   const menuRef = useRef(null);
   const calRef = useRef(null);
+  const notifRef = useRef(null);
   const [title, subtitle] = PAGE_TITLES[location.pathname] || ['Admin Panel', ''];
 
   const today = new Date().toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+
+  const fetchUnreadCount = () => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) return;
+    axios.get('/api/notifications', {
+      headers: { Authorization: `Bearer ${token}` }
+    }).then(r => {
+      setUnreadCount(r.data.data?.unreadCount || 0);
+    }).catch(() => {});
+  };
 
   useEffect(() => {
     axios.get('/api/admin/me', {
@@ -86,12 +100,17 @@ export default function Layout() {
       if (r.data.data?.name) setAdminName(r.data.data.name);
       if (r.data.data?.email) setAdminEmail(r.data.data.email);
     }).catch(() => {});
+
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 15000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
     function handleClick(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
       if (calRef.current && !calRef.current.contains(e.target)) setCalOpen(false);
+      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -225,11 +244,51 @@ export default function Layout() {
             <div className="topbar-divider" />
 
             {/* Notification bell */}
-            <button className="topbar-icon-btn topbar-icon-btn-clickable" title="Notifications" style={{ position: 'relative' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-              </svg>
-            </button>
+            <div className="topbar-notif-wrap" ref={notifRef} style={{ position: 'relative' }}>
+              <button
+                className={`topbar-icon-btn topbar-icon-btn-clickable${notifOpen ? ' active' : ''}`}
+                onClick={() => {
+                  setNotifOpen(o => !o);
+                  fetchUnreadCount();
+                }}
+                title="Notifications"
+                style={{ position: 'relative' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                {unreadCount > 0 ? (
+                  <span style={{
+                    position: 'absolute', top: '2px', right: '2px',
+                    minWidth: '15px', height: '15px', borderRadius: '10px',
+                    background: '#EF4444', color: '#FFFFFF',
+                    fontSize: '0.62rem', fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: '0 3px', border: '2px solid var(--bg-white)',
+                    boxShadow: '0 1px 3px rgba(239,68,68,0.4)'
+                  }}>
+                    {unreadCount}
+                  </span>
+                ) : (
+                  <span style={{
+                    position: 'absolute', top: '5px', right: '5px',
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: '#94A3B8'
+                  }} />
+                )}
+              </button>
+
+              {notifOpen && (
+                <NotificationPanel
+                  tokenKey="adminToken"
+                  onClose={() => {
+                    setNotifOpen(false);
+                    fetchUnreadCount();
+                  }}
+                  onNavigate={(link) => navigate(link)}
+                />
+              )}
+            </div>
 
             <div className="topbar-divider" />
 
