@@ -76,10 +76,10 @@ async function seed() {
   // 3. Seed Student Users & Entities (Password: std123)
   const studentPass = 'std123';
   const studentsData = [
-    { email: 'student1@gmail.com', name: 'Rahul Sharma', regNo: 'CH.SC.U4CSE23003' },
-    { email: 'student2@gmail.com', name: 'Ananya Roy', regNo: 'CH.SC.U4CSE23004' },
-    { email: 'student3@gmail.com', name: 'Vikram Patel', regNo: 'CH.SC.U4CSE23005' },
-    { email: 'student4@gmail.com', name: 'Priya Nair', regNo: 'CH.SC.U4CSE23006' }
+    { email: 'ch.sc.u4cse23003@ch.students.amrita.edu', name: 'Rahul Sharma', regNo: 'CH.SC.U4CSE23003' },
+    { email: 'ch.sc.u4cse23004@ch.students.amrita.edu', name: 'Ananya Roy', regNo: 'CH.SC.U4CSE23004' },
+    { email: 'ch.sc.u4cse23005@ch.students.amrita.edu', name: 'Vikram Patel', regNo: 'CH.SC.U4CSE23005' },
+    { email: 'ch.sc.u4cse23006@ch.students.amrita.edu', name: 'Priya Nair', regNo: 'CH.SC.U4CSE23006' }
   ];
 
   const studentEntities = [];
@@ -273,10 +273,10 @@ async function seed() {
   console.log(`ADMIN      | ${adminEmail}        | ${adminPass}`);
   console.log(`FACULTY    | ${faculty1Email}         | ${facultyPass}`);
   console.log(`FACULTY    | ${faculty2Email}         | ${facultyPass}`);
-  console.log(`STUDENT 1  | student1@gmail.com   | ${studentPass} (Reg: CH.SC.U4CSE23003)`);
-  console.log(`STUDENT 2  | student2@gmail.com   | ${studentPass} (Reg: CH.SC.U4CSE23004)`);
-  console.log(`STUDENT 3  | student3@gmail.com   | ${studentPass} (Reg: CH.SC.U4CSE23005)`);
-  console.log(`STUDENT 4  | student4@gmail.com   | ${studentPass} (Reg: CH.SC.U4CSE23006)`);
+  console.log(`STUDENT 1  | ch.sc.u4cse23003@ch.students.amrita.edu | ${studentPass} (Reg: CH.SC.U4CSE23003)`);
+  console.log(`STUDENT 2  | ch.sc.u4cse23004@ch.students.amrita.edu | ${studentPass} (Reg: CH.SC.U4CSE23004)`);
+  console.log(`STUDENT 3  | ch.sc.u4cse23005@ch.students.amrita.edu | ${studentPass} (Reg: CH.SC.U4CSE23005)`);
+  console.log(`STUDENT 4  | ch.sc.u4cse23006@ch.students.amrita.edu | ${studentPass} (Reg: CH.SC.U4CSE23006)`);
   console.log('======================================================\n');
 
   await mongoose.disconnect();

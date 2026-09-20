@@ -5,6 +5,7 @@ const path = require('path');
 const adminRoutes = require('./controllers/adminController');
 const facultyRoutes = require('./controllers/facultyController');
 const studentRoutes = require('./controllers/studentController');
+const notificationRoutes = require('./controllers/notificationController');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -19,6 +20,7 @@ const upload = multer({ storage });
 // Serve uploaded static files (PDFs placed under /public/uploads)
 app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
 
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin', upload.single('file'), adminRoutes);
 app.use('/api/faculty', upload.single('file'), facultyRoutes);
 app.use('/api/student', upload.single('file'), studentRoutes);

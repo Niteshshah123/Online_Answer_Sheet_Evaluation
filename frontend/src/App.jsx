@@ -19,6 +19,7 @@ import StudentLoginPage from './pages/StudentLoginPage';
 import StudentDashboardPage from './pages/StudentDashboardPage';
 import StudentReportPage from './pages/StudentReportPage';
 import StudentPasswordPage from './pages/StudentPasswordPage';
+import StudentDoubtsPage from './pages/StudentDoubtsPage';
 
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem('adminToken');
@@ -91,6 +92,7 @@ function App() {
       >
         <Route index element={<StudentDashboardPage />} />
         <Route path="dashboard" element={<StudentDashboardPage />} />
+        <Route path="doubts" element={<StudentDoubtsPage />} />
         <Route path="report/:sheetId" element={<StudentReportPage />} />
         <Route path="password" element={<StudentPasswordPage />} />
       </Route>

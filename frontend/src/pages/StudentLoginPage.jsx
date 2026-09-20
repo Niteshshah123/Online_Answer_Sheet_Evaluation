@@ -25,23 +25,23 @@ export default function StudentLoginPage() {
   return (
     <AuthLayout
       roleTag="Student Portal"
-      hint="student1@gmail.com  ·  std123"
+      hint="ch.sc.u4cse23003@ch.students.amrita.edu (or roll no) · std123"
       links={[
         { href: '/login', label: 'Admin Login' },
         { href: '/faculty/login', label: 'Faculty Login' },
       ]}
     >
       <h2 className="auth-form-title">Sign In</h2>
-      <p className="auth-form-sub">Enter your credentials to view your results and reports.</p>
+      <p className="auth-form-sub">Enter your student email or roll number and password to view your evaluations.</p>
 
       {error && <div className="alert alert-error">{error}</div>}
 
       <form onSubmit={handleSubmit}>
         <div className="form-group">
-          <label className="form-label">Email Address</label>
-          <input className="form-input" type="email" placeholder="student@amrita.edu"
+          <label className="form-label">Email or Roll Number</label>
+          <input className="form-input" type="text" placeholder="e.g. ch.sc.u4cse23003@ch.students.amrita.edu or CH.SC.U4CSE23003"
             value={form.email} onChange={e => setForm({ ...form, email: e.target.value })}
-            required autoComplete="email" />
+            required autoComplete="username" />
         </div>
         <div className="form-group">
           <label className="form-label">Password</label>
