@@ -2136,26 +2136,27 @@ input, select, textarea { color: var(--text-primary); }
   .adm-dash-banner { flex-direction: column; text-align: center; }
   .adm-dash-banner-badges { flex-wrap: wrap; justify-content: center; }
   .adm-dash-banner-quote { text-align: center; border-left: none; border-top: 3px solid #C9A84C; }
+  .sidebar-toggle { display: flex !important; }
 }
 
 @media (min-width: 961px) {
-  .sidebar-toggle { display: none; }
-  .sidebar-overlay { display: none; }
+  .sidebar-toggle { display: none !important; }
+  .sidebar-overlay { display: none !important; }
   .sidebar { transition: width 0.2s ease; }
   .main-content { transition: margin-left 0.2s ease; }
-  .sidebar-collapse-btn { display: flex; }
+  .sidebar-collapse-btn { display: flex !important; }
   .sidebar-close { display: none !important; }
 }
 
 .sidebar-toggle {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   width: 34px;
   height: 34px;
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  background: white;
+  background: var(--bg-white, #FFFFFF);
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;

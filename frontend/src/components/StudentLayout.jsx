@@ -41,6 +41,7 @@ export default function StudentLayout() {
   const { dark, toggle: toggleTheme } = useTheme();
   const [studentName, setStudentName] = useState('Student');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -86,10 +87,10 @@ export default function StudentLayout() {
   const initials = cleanStudentName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'S';
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${collapsed ? ' sidebar-collapsed' : ''}`}>
       {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
 
-      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}`}>
+      <aside className={`sidebar${sidebarOpen ? ' sidebar-open' : ''}${collapsed ? ' sidebar-collapsed' : ''}`}>
         {/* Background image */}
         <div style={{
           position: 'absolute', inset: 0, zIndex: 0,
@@ -104,8 +105,13 @@ export default function StudentLayout() {
             <div className="sidebar-brand-name">Amrita University</div>
             <div className="sidebar-brand-sub">Student Portal</div>
           </div>
-          <button className="sidebar-close" onClick={() => setSidebarOpen(false)}>
+          <button className="sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close sidebar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <button className="sidebar-collapse-btn" onClick={() => setCollapsed(c => !c)} aria-label="Toggle sidebar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              {collapsed ? <polyline points="9 18 15 12 9 6"/> : <polyline points="15 18 9 12 15 6"/>}
+            </svg>
           </button>
         </div>
 
@@ -114,7 +120,7 @@ export default function StudentLayout() {
           <div className="sidebar-section-label">Navigation</div>
           <nav className="sidebar-nav">
             {NAV_LINKS.map(link => (
-              <NavLink key={link.to} to={link.to} end className={({ isActive }) => isActive ? 'active' : ''}>
+              <NavLink key={link.to} to={link.to} end className={({ isActive }) => isActive ? 'active' : ''} title={collapsed ? link.label : undefined}>
                 {link.icon}
                 <span className="sidebar-nav-label">{link.label}</span>
               </NavLink>
@@ -128,7 +134,7 @@ export default function StudentLayout() {
             position: 'relative',
             zIndex: 100,
             flexShrink: 0,
-            padding: '12px 10px',
+            padding: collapsed ? '12px 6px' : '12px 10px',
             borderTop: '1px solid rgba(255,255,255,0.08)',
             background: 'rgba(15, 23, 42, 0.95)'
           }}
@@ -140,17 +146,17 @@ export default function StudentLayout() {
               display: 'flex',
               alignItems: 'center',
               gap: '10px',
-              padding: '8px 10px',
+              padding: collapsed ? '8px 0' : '8px 10px',
               borderRadius: '10px',
               background: menuOpen ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
               cursor: 'pointer',
-              justifyContent: 'space-between',
+              justifyContent: collapsed ? 'center' : 'space-between',
               transition: 'all 0.15s ease'
             }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.12)'}
             onMouseLeave={e => e.currentTarget.style.background = menuOpen ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.05)'}
-            title={cleanStudentName}
+            title={collapsed ? cleanStudentName : undefined}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
               <div style={{
@@ -170,36 +176,40 @@ export default function StudentLayout() {
                 {initials}
               </div>
 
-              <div style={{ textAlign: 'left', minWidth: 0 }}>
-                <div style={{
-                  fontSize: '0.82rem',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}>
-                  {cleanStudentName}
+              {!collapsed && (
+                <div style={{ textAlign: 'left', minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    color: '#FFFFFF',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {cleanStudentName}
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}>
+                    Student
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.68rem', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 500 }}>
-                  Student
-                </div>
-              </div>
+              )}
             </div>
 
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="rgba(255,255,255,0.7)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}
-            >
-              <polyline points="18 15 12 9 6 15" />
-            </svg>
+            {!collapsed && (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="rgba(255,255,255,0.7)"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s ease' }}
+              >
+                <polyline points="18 15 12 9 6 15" />
+              </svg>
+            )}
           </div>
 
           {/* Upward Dropdown Menu */}
@@ -211,8 +221,8 @@ export default function StudentLayout() {
                 top: 'auto',
                 bottom: 'calc(100% + 8px)',
                 left: '10px',
-                right: '10px',
-                width: 'calc(100% - 20px)',
+                right: collapsed ? 'auto' : '10px',
+                width: collapsed ? '220px' : 'calc(100% - 20px)',
                 zIndex: 9999,
                 borderRadius: '12px',
                 boxShadow: '0 12px 36px rgba(0,0,0,0.35)',

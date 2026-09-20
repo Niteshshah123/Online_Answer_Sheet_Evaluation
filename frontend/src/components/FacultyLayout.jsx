@@ -458,6 +458,11 @@ export default function FacultyLayout() {
         <header className="topbar">
           {/* Topbar Left: Mobile Sidebar Toggle, Title, Subtitle, Search Bar */}
           <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button className="sidebar-toggle" onClick={() => setSidebarOpen(o => !o)} aria-label="Toggle navigation">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </button>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
                 Faculty Portal
