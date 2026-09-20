@@ -133,9 +133,6 @@ export default function FacultyLayout() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  const pendingDoubts = notifications.filter(n => n.status === 'PENDING');
-  const pendingCount = pendingDoubts.length;
-
   const logout = () => {
     localStorage.removeItem('facultyToken');
     navigate('/faculty/login');
