@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const statusCfg = (isPublished) => isPublished
-  ? { bg: '#f0fdf4', color: '#166534', border: '#bbf7d0', dot: '#16a34a', label: 'Published' }
-  : { bg: '#fffbeb', color: '#92400e', border: '#fde68a', dot: '#d97706', label: 'Pending' };
+  ? { bg: 'var(--success-bg)', color: 'var(--success)', border: 'var(--success-border)', dot: '#16a34a', label: 'Published' }
+  : { bg: 'var(--warning-bg)', color: 'var(--warning)', border: 'var(--warning-border)', dot: '#d97706', label: 'Pending' };
 
 export default function StudentDashboardPage() {
   const navigate = useNavigate();

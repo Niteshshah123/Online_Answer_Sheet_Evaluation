@@ -231,8 +231,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="adm-dash-stat-card" style={{ '--stat-accent': '#1E3A5F' }}>
-          <div className="adm-dash-stat-icon" style={{ background: '#EFF6FF', color: '#1E3A5F' }}><FileIcon /></div>
+        <div className="adm-dash-stat-card" style={{ '--stat-accent': 'var(--text-accent, #38bdf8)' }}>
+          <div className="adm-dash-stat-icon" style={{ background: 'rgba(56, 189, 248, 0.12)', color: 'var(--text-accent, #38bdf8)' }}><FileIcon /></div>
           <div className="adm-dash-stat-body">
             <div className="adm-dash-stat-value">{(metrics?.totalAnswerSheets || 0).toLocaleString()}</div>
             <div className="adm-dash-stat-label">Answer Sheets</div>
@@ -240,19 +240,19 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="adm-dash-stat-card" style={{ '--stat-accent': '#16a34a' }}>
-          <div className="adm-dash-stat-icon" style={{ background: '#f0fdf4', color: '#16a34a' }}><CheckCircleIcon /></div>
+        <div className="adm-dash-stat-card" style={{ '--stat-accent': 'var(--success)' }}>
+          <div className="adm-dash-stat-icon" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}><CheckCircleIcon /></div>
           <div className="adm-dash-stat-body">
             <div className="adm-dash-stat-value">
               {(metrics?.checkedPapersCount || 0).toLocaleString()}
             </div>
             <div className="adm-dash-stat-label">Fully Evaluated</div>
-            <div className="adm-dash-stat-sub" style={{ color: '#16a34a' }}>{overallPct}% completion</div>
+            <div className="adm-dash-stat-sub" style={{ color: 'var(--success)' }}>{overallPct}% completion</div>
           </div>
         </div>
 
-        <div className="adm-dash-stat-card" style={{ '--stat-accent': '#d97706' }}>
-          <div className="adm-dash-stat-icon" style={{ background: '#fffbeb', color: '#d97706' }}><ClockIcon /></div>
+        <div className="adm-dash-stat-card" style={{ '--stat-accent': 'var(--warning)' }}>
+          <div className="adm-dash-stat-icon" style={{ background: 'var(--warning-bg)', color: 'var(--warning)' }}><ClockIcon /></div>
           <div className="adm-dash-stat-body">
             <div className="adm-dash-stat-value">{(metrics?.partiallyCheckedPapersCount || 0).toLocaleString()}</div>
             <div className="adm-dash-stat-label">In Progress</div>
@@ -260,8 +260,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="adm-dash-stat-card" style={{ '--stat-accent': '#dc2626' }}>
-          <div className="adm-dash-stat-icon" style={{ background: '#fef2f2', color: '#dc2626' }}><AlertCircleIcon /></div>
+        <div className="adm-dash-stat-card" style={{ '--stat-accent': 'var(--error)' }}>
+          <div className="adm-dash-stat-icon" style={{ background: 'var(--error-bg)', color: 'var(--error)' }}><AlertCircleIcon /></div>
           <div className="adm-dash-stat-body">
             <div className="adm-dash-stat-value">{(metrics?.notCheckedPapersCount || 0).toLocaleString()}</div>
             <div className="adm-dash-stat-label">Not Started</div>

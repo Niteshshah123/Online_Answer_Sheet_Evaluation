@@ -14,18 +14,39 @@ const STATUS_BADGE = {
 
 const ctrlBtn = {
   width: '24px', height: '24px', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)',
-  background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'var(--text-secondary)',
+  background: 'var(--bg-white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: 'var(--text-secondary)', transition: 'all 0.15s ease'
 };
 
-const PdfControls = ({ label, zoom, onZoomIn, onZoomOut, onRotate }) => (
-  <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-      <button onClick={onZoomOut} style={ctrlBtn}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', minWidth: '36px', textAlign: 'center' }}>{zoom}%</span>
-      <button onClick={onZoomIn} style={ctrlBtn}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-      <button onClick={onRotate} style={{ ...ctrlBtn, marginLeft: '4px' }} title="Rotate 90°">
+const PdfControls = ({ label, icon, zoom, onZoomIn, onZoomOut, onRotate }) => (
+  <div style={{
+    padding: '0 14px',
+    height: '42px',
+    background: 'var(--bg-subtle)',
+    borderBottom: '1px solid var(--border)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    flexShrink: 0
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      {icon && <span style={{ display: 'flex', alignItems: 'center', color: 'var(--amrita-maroon)' }}>{icon}</span>}
+      <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+        {label}
+      </span>
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'var(--bg-white)', padding: '2px 4px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+      <button onClick={onZoomOut} style={ctrlBtn} title="Zoom Out">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <span style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '38px', textAlign: 'center', userSelect: 'none' }}>
+        {zoom}%
+      </span>
+      <button onClick={onZoomIn} style={ctrlBtn} title="Zoom In">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <div style={{ width: '1px', height: '14px', background: 'var(--border)', margin: '0 2px' }} />
+      <button onClick={onRotate} style={ctrlBtn} title="Rotate 90°">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
       </button>
     </div>
@@ -40,6 +61,25 @@ export default function FacultyEvaluationPage() {
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showEvalPanel, setShowEvalPanel] = useState(true);
+  const [isSwapped, setIsSwapped] = useState(() => {
+    try {
+      return localStorage.getItem('faculty_pdf_swap_position') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleSwapPanels = () => {
+    setIsSwapped(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('faculty_pdf_swap_position', String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const [rows, setRows] = useState([]);
   const [questionPaperUrl, setQuestionPaperUrl] = useState(null);
@@ -68,11 +108,14 @@ export default function FacultyEvaluationPage() {
 
   const [finalSubmittedToAdmin, setFinalSubmittedToAdmin] = useState(false);
 
+  const [sheetDoubts, setSheetDoubts] = useState([]);
+
   const load = async () => {
     try {
       setLoading(true); setErrorMessage('');
+      const token = localStorage.getItem('facultyToken');
       const res = await axios.get(`/api/faculty/evaluations?sheetId=${sheetId}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('facultyToken')}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const d = res.data.data || {};
       setRows(d.evaluations || []);
@@ -85,6 +128,17 @@ export default function FacultyEvaluationPage() {
       setCoEvaluatorMax(d.coEvaluatorMax || 0);
       setFinalSubmittedToAdmin(Boolean(d.finalSubmittedToAdmin));
       if (d.convertedScale) setTargetScale(d.convertedScale);
+
+      // Fetch doubts for this sheet
+      try {
+        const doubtsRes = await axios.get('/api/faculty/doubts', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const allDoubts = doubtsRes.data.data || [];
+        setSheetDoubts(allDoubts.filter(db => String(db.sheetId) === String(sheetId)));
+      } catch (errDb) {
+        console.error('Failed to load doubts for sheet:', errDb);
+      }
     } catch (err) {
       setErrorMessage(err.response?.data?.message || 'Unable to load evaluation sheet.');
     } finally { setLoading(false); }
@@ -115,12 +169,88 @@ export default function FacultyEvaluationPage() {
   const resolvePdfUrl = (url) => {
     if (!url) return null;
     if (/^(https?:)?\/\//.test(url)) return url;
-    return window.location.port === '5173' ? `http://localhost:3000/${url}` : url;
+    const cleanPath = url.startsWith('/') ? url : `/${url}`;
+    return window.location.port === '5173' ? `http://localhost:3000${cleanPath}` : cleanPath;
   };
 
   const questionPaperPreviewUrl = useMemo(() => resolvePdfUrl(questionPaperUrl), [questionPaperUrl]);
   const sheetPreviewUrl = useMemo(() => resolvePdfUrl(sheetPdfUrl), [sheetPdfUrl]);
   const answerKeyPreviewUrl = useMemo(() => resolvePdfUrl(answerKeyUrl), [answerKeyUrl]);
+
+  const qPaperIcon = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+      <polyline points="10 9 9 9 8 9"/>
+    </svg>
+  );
+
+  const studentSheetIcon = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+  );
+
+  const answerKeyIcon = (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" />
+    </svg>
+  );
+
+  const renderQuestionPaperPanel = () => (
+    <div key="panel-question-paper" style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
+      <PdfControls
+        label="Question Paper"
+        icon={qPaperIcon}
+        zoom={paperZoom}
+        onZoomIn={() => setPaperZoom(z => Math.min(z + 15, 200))}
+        onZoomOut={() => setPaperZoom(z => Math.max(z - 15, 50))}
+        onRotate={() => setPaperRotate(r => (r + 90) % 360)}
+      />
+      <div style={{ flex: 1, overflow: 'auto', background: '#262626', display: 'flex', justifyContent: 'center', padding: '10px' }}>
+        {questionPaperPreviewUrl ? (
+          <iframe
+            title="Question Paper"
+            src={questionPaperPreviewUrl}
+            style={{ width: `${paperZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${paperRotate}deg)`, transition: 'transform 0.2s', borderRadius: '4px', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
+          />
+        ) : (
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
+            No Question Paper PDF available
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const renderStudentAnswerSheetPanel = () => (
+    <div key="panel-student-sheet" style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)', height: '100%' }}>
+      <PdfControls
+        label="Student Answer Sheet"
+        icon={studentSheetIcon}
+        zoom={sheetZoom}
+        onZoomIn={() => setSheetZoom(z => Math.min(z + 15, 200))}
+        onZoomOut={() => setSheetZoom(z => Math.max(z - 15, 50))}
+        onRotate={() => setSheetRotate(r => (r + 90) % 360)}
+      />
+      <div style={{ flex: 1, overflow: 'auto', background: '#262626', display: 'flex', justifyContent: 'center', padding: '10px' }}>
+        {sheetPreviewUrl ? (
+          <iframe
+            title="Student Answer Sheet"
+            src={sheetPreviewUrl}
+            style={{ width: `${sheetZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${sheetRotate}deg)`, transition: 'transform 0.2s', borderRadius: '4px', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
+          />
+        ) : (
+          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
+            No Student Answer Sheet PDF available
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   const updateRow = (id, field, value) =>
     setRows(cur => cur.map(r => r.evaluationId === id ? { ...r, [field]: value } : r));
@@ -294,18 +424,47 @@ export default function FacultyEvaluationPage() {
     >
 
       {/* Workspace header */}
-      <div style={{ padding: '0 20px', height: '48px', background: 'white', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/faculty/assignments')} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
-            Back
+      <div style={{
+        padding: '0 20px',
+        height: '52px',
+        background: 'var(--bg-white)',
+        borderBottom: '1px solid var(--border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexShrink: 0,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => navigate('/faculty/assignments')}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-secondary)' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"/>
+              <polyline points="12 19 5 12 12 5"/>
+            </svg>
+            Assignments
           </button>
-          <div style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
-          <div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>Evaluation Workspace</span>
-            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '8px', fontFamily: 'monospace' }}>{sheetId}</span>
-            <span className="badge badge-maroon" style={{ marginLeft: '10px', fontSize: '0.68rem' }}>
-              {isMidTerm ? 'MID TERM (3-PANEL VIEW)' : 'END SEM (4-PANEL VIEW)'}
+          <div style={{ width: '1px', height: '22px', background: 'var(--border)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--amrita-maroon)' }}>Evaluation Workspace</span>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontWeight: 600 }}>
+              {sheetId}
+            </span>
+            <span style={{
+              padding: '3px 10px',
+              borderRadius: '20px',
+              fontSize: '0.68rem',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              background: 'var(--accent-light)',
+              color: 'var(--amrita-maroon)',
+              border: '1px solid var(--accent-border)'
+            }}>
+              {isMidTerm ? 'MID TERM • 3-PANEL VIEW' : 'END SEM • 4-PANEL VIEW'}
             </span>
           </div>
         </div>
@@ -389,63 +548,126 @@ export default function FacultyEvaluationPage() {
         </div>
       )}
 
+      {/* Student Doubts Notice on this paper */}
+      {sheetDoubts.length > 0 && (
+        <div style={{
+          padding: '10px 20px',
+          background: '#fffbeb',
+          borderBottom: '1px solid #fde68a',
+          color: '#92400e',
+          fontSize: '0.8rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '8px',
+          flexShrink: 0
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1rem' }}>✋</span>
+            <span>
+              <strong>Student Query / Doubt Raised:</strong>{' '}
+              {sheetDoubts.map(d => `${d.questionNumber ? `Q${d.questionNumber}` : 'General'}: "${d.comment}" (${d.status})`).join(' | ')}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/faculty/assignments?tab=doubts')}
+            className="btn btn-xs"
+            style={{
+              background: '#b45309',
+              color: '#fff',
+              border: 'none',
+              padding: '4px 8px',
+              borderRadius: '4px',
+              fontSize: '0.72rem',
+              fontWeight: 700,
+              cursor: 'pointer'
+            }}
+          >
+            Manage in Doubts Tab ➔
+          </button>
+        </div>
+      )}
+
       {/* Dynamic Panel Grid Layout */}
       <div
         ref={containerRef}
         style={{
           display: 'grid',
           gridTemplateColumns: isMidTerm
-            ? (showEvalPanel ? `${panelWidths.left}% 5px ${panelWidths.center}% 5px ${panelWidths.right}%` : '1fr 6px 1fr')
-            : (showEvalPanel ? '24% 4px 26% 4px 24% 4px 22%' : '1fr 6px 1fr 6px 1fr'),
+            ? (showEvalPanel ? `${panelWidths.left}% 6px ${panelWidths.center}% 6px ${panelWidths.right}%` : '1fr 6px 1fr')
+            : (showEvalPanel ? '24% 4px 26% 6px 24% 4px 22%' : '1fr 6px 1fr 6px 1fr'),
           flex: 1,
           overflow: 'hidden'
         }}
       >
 
-        {/* Panel 1 — Question Paper */}
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-          <PdfControls label="Question Paper" zoom={paperZoom}
-            onZoomIn={() => setPaperZoom(z => Math.min(z + 15, 200))}
-            onZoomOut={() => setPaperZoom(z => Math.max(z - 15, 50))}
-            onRotate={() => setPaperRotate(r => (r + 90) % 360)}
-          />
-          <div style={{ flex: 1, overflow: 'auto', background: '#3d3d3d', display: 'flex', justifyContent: 'center', padding: '8px' }}>
-            {questionPaperPreviewUrl ? (
-              <iframe title="Question Paper" src={questionPaperPreviewUrl}
-                style={{ width: `${paperZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${paperRotate}deg)`, transition: 'transform 0.2s' }}
-              />
-            ) : (
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
-                No Question Paper PDF available
-              </div>
-            )}
-          </div>
+        {/* Panel 1 (Question Paper OR Student Answer Sheet if swapped) */}
+        {isSwapped ? renderStudentAnswerSheetPanel() : renderQuestionPaperPanel()}
+
+        {/* Resizer 1 with Centered Floating Swap Button */}
+        <div
+          onMouseDown={() => setIsDragging('left')}
+          style={{
+            position: 'relative',
+            cursor: 'col-resize',
+            background: isDragging === 'left' ? 'var(--amrita-maroon)' : 'var(--border)',
+            transition: 'background 0.15s',
+            zIndex: 10
+          }}
+        >
+          {/* Centered Floating Swap Button in the middle between both viewers */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSwapPanels();
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            title={isSwapped ? 'Switch back: Question Paper on Left, Answer Sheet on Right' : 'Swap positions: Answer Sheet on Left, Question Paper on Right'}
+            style={{
+              position: 'absolute',
+              top: '6px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '28px',
+              height: '28px',
+              borderRadius: '50%',
+              background: 'var(--bg-white)',
+              border: '1px solid var(--border-strong)',
+              boxShadow: 'var(--shadow)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              color: 'var(--amrita-maroon)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+              padding: 0,
+              zIndex: 20
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1.15)';
+              e.currentTarget.style.borderColor = 'var(--amrita-maroon)';
+              e.currentTarget.style.background = 'var(--accent-light)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateX(-50%) scale(1)';
+              e.currentTarget.style.borderColor = 'var(--border-strong)';
+              e.currentTarget.style.background = 'var(--bg-white)';
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="17 1 21 5 17 9" />
+              <path d="M3 5h18" />
+              <polyline points="7 23 3 19 7 15" />
+              <path d="M21 19H3" />
+            </svg>
+          </button>
         </div>
 
-        {/* Resizer 1 */}
-        <div onMouseDown={() => setIsDragging('left')}
-          style={{ cursor: 'col-resize', background: isDragging === 'left' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
-        />
-
-        {/* Panel 2 — Student Answer Sheet */}
-        <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-          <PdfControls label="Student Answer Sheet" zoom={sheetZoom}
-            onZoomIn={() => setSheetZoom(z => Math.min(z + 15, 200))}
-            onZoomOut={() => setSheetZoom(z => Math.max(z - 15, 50))}
-            onRotate={() => setSheetRotate(r => (r + 90) % 360)}
-          />
-          <div style={{ flex: 1, overflow: 'auto', background: '#3d3d3d', display: 'flex', justifyContent: 'center', padding: '8px' }}>
-            {sheetPreviewUrl ? (
-              <iframe title="Student Answer Sheet" src={sheetPreviewUrl}
-                style={{ width: `${sheetZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${sheetRotate}deg)`, transition: 'transform 0.2s' }}
-              />
-            ) : (
-              <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
-                No Student Answer Sheet PDF available
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Panel 2 (Student Answer Sheet OR Question Paper if swapped) */}
+        {isSwapped ? renderQuestionPaperPanel() : renderStudentAnswerSheetPanel()}
 
         {/* Resizer 2 (For Mid-Term split or End-Sem panel 3) */}
         {(!isMidTerm || showEvalPanel) && (
@@ -457,16 +679,19 @@ export default function FacultyEvaluationPage() {
         {/* Panel 3 — Official Answer Key (ONLY displayed for End-Sem / End-Term Exams) */}
         {!isMidTerm && (
           <>
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-              <PdfControls label="Official Answer Key" zoom={keyZoom}
+            <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
+              <PdfControls
+                label="Official Answer Key"
+                icon={answerKeyIcon}
+                zoom={keyZoom}
                 onZoomIn={() => setKeyZoom(z => Math.min(z + 15, 200))}
                 onZoomOut={() => setKeyZoom(z => Math.max(z - 15, 50))}
                 onRotate={() => setKeyRotate(r => (r + 90) % 360)}
               />
-              <div style={{ flex: 1, overflow: 'auto', background: '#3d3d3d', display: 'flex', justifyContent: 'center', padding: '8px' }}>
+              <div style={{ flex: 1, overflow: 'auto', background: '#1e2530', display: 'flex', justifyContent: 'center', padding: '10px' }}>
                 {answerKeyPreviewUrl ? (
                   <iframe title="Official Answer Key" src={answerKeyPreviewUrl}
-                    style={{ width: `${keyZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${keyRotate}deg)`, transition: 'transform 0.2s' }}
+                    style={{ width: `${keyZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${keyRotate}deg)`, transition: 'transform 0.2s', borderRadius: '4px', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
                   />
                 ) : (
                   <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
@@ -485,11 +710,25 @@ export default function FacultyEvaluationPage() {
 
         {/* Final Panel — Question Evaluation Form */}
         {showEvalPanel && (
-          <div style={{ display: 'flex', flexDirection: 'column', background: 'white', overflow: 'hidden' }}>
-            <div style={{ padding: '8px 14px', background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Question Evaluation
-              </span>
+          <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden' }}>
+            <div style={{
+              padding: '0 14px',
+              height: '42px',
+              background: 'var(--bg-subtle)',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexShrink: 0
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontSize: '0.73rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Question Evaluation
+                </span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 600, color: 'var(--text-muted)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '1px 6px', borderRadius: '10px' }}>
+                  {rows.length} Qs
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={() => setShowEvalPanel(false)}
@@ -535,7 +774,7 @@ export default function FacultyEvaluationPage() {
                           <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>MAX</span>
                           <input type="number" value={row.maxMark ?? ''} onChange={e => updateMax(row.evaluationId, e.target.value)}
                             disabled={finalSubmittedToAdmin} min={1} step="1"
-                            style={{ width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', background: finalSubmittedToAdmin ? 'var(--bg-subtle)' : 'white', color: 'var(--text-primary)' }}
+                            style={{ width: '46px', padding: '2px 6px', fontSize: '0.75rem', fontWeight: 700, border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', textAlign: 'center', outline: 'none', background: 'var(--bg-subtle)', color: 'var(--text-primary)' }}
                           />
                         </div>
                       </div>
@@ -545,7 +784,7 @@ export default function FacultyEvaluationPage() {
                             placeholder={`0 – ${row.maxMark ?? 'max'}`}
                             onChange={e => updateRow(row.evaluationId, 'marksObtained', e.target.value === '' ? null : Math.round(Number(e.target.value)))}
                             disabled={finalSubmittedToAdmin} min={0} max={row.maxMark ?? undefined} step="1"
-                            style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, background: finalSubmittedToAdmin ? 'var(--bg-subtle)' : 'white', fontSize: '0.875rem', padding: '6px 10px' }}
+                            style={{ flex: 1, borderColor: err ? 'var(--error)' : undefined, fontSize: '0.875rem', padding: '6px 10px' }}
                           />
                           {!finalSubmittedToAdmin && (
                             <button type="button" onClick={() => toggleRemark(row.evaluationId)}
@@ -573,7 +812,7 @@ export default function FacultyEvaluationPage() {
           </div>
 
           {rows.length > 0 && (
-            <div style={{ borderTop: '1px solid var(--border)', padding: '12px', flexShrink: 0, background: 'white' }}>
+            <div style={{ borderTop: '1px solid var(--border)', padding: '12px', flexShrink: 0, background: 'var(--bg-white)' }}>
               <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: '10px' }}>
                 {totals.coEvaluatorMax > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.74rem', color: 'var(--text-muted)' }}>
@@ -604,7 +843,7 @@ export default function FacultyEvaluationPage() {
                   <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--amrita-maroon)', fontVariantNumeric: 'tabular-nums' }}>{totals.convertedScore} / {totals.scale}</span>
                 </div>
                 {totals.nearPass && (
-                  <div style={{ marginTop: '8px', padding: '6px 10px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '4px', fontSize: '0.7rem', color: '#92400e', fontWeight: 600 }}>
+                  <div style={{ marginTop: '8px', padding: '6px 10px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '4px', fontSize: '0.7rem', color: 'var(--warning)', fontWeight: 600 }}>
                     💡 Moderation Notice: Student is {totals.marksNeededToPass} mark(s) short of passing ({totals.passThreshold}/{totals.scale}).
                   </div>
                 )}
