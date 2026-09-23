@@ -186,11 +186,11 @@ export default function FacultyAssignmentsPage() {
     try {
       setSubmittingReply(true);
       setErrorMessage('');
-      const token = localStorage.getItem('facultyToken');
+      const willUpdateMarks = !selectedDoubt.finalSubmittedToAdmin && updatedMarks !== '' && updatedMarks !== null;
       await axios.post(`/api/faculty/doubts/${selectedDoubt._id}/reply`, {
         teacherReply: replyText.trim(),
         status: replyStatus,
-        updatedMarks: updatedMarks !== '' ? Number(updatedMarks) : null
+        updatedMarks: willUpdateMarks ? Number(updatedMarks) : null
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });

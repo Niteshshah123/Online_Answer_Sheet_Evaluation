@@ -6,11 +6,13 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './context/ThemeContext';
 
-// Auto-redirect on expired/invalid token
+// Auto-redirect on expired/invalid token (401 Unauthorized only)
 axios.interceptors.response.use(
   res => res,
   err => {
-    if (err.response?.status === 401 || err.response?.status === 403) {
+    // Only redirect to login when session is actually unauthenticated / expired (401)
+    // 403 Forbidden errors are business/permission errors and should be handled by components
+    if (err.response?.status === 401) {
       const url = err.config?.url || '';
       if (url.includes('/api/faculty/')) {
         localStorage.removeItem('facultyToken');

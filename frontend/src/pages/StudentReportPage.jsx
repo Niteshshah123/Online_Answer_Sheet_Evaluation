@@ -127,7 +127,35 @@ export default function StudentReportPage() {
     return map;
   }, [doubts]);
 
-  if (error) return <div className="alert alert-error" style={{ margin: '20px' }}>{error}</div>;
+  if (error) {
+    return (
+      <div className="dash-root" style={{ padding: '24px' }}>
+        <button
+          className="btn btn-ghost btn-sm"
+          onClick={() => navigate('/student/dashboard')}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '16px' }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+          </svg>
+          Back to Dashboard
+        </button>
+        <div className="card" style={{ maxWidth: '640px', margin: '30px auto', padding: '36px 28px', textAlign: 'center' }}>
+          <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🔒</div>
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '10px', color: 'var(--text-primary)' }}>
+            Report Currently Unavailable
+          </h2>
+          <p style={{ fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6 }}>
+            {error}
+          </p>
+          <button className="btn btn-primary" onClick={() => navigate('/student/dashboard')}>
+            Return to Student Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!report) return <div className="dash-loading"><div className="dash-loading-spinner" /> Loading report...</div>;
 
   return (

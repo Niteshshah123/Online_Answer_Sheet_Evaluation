@@ -360,11 +360,24 @@ class DoubtService {
       throw new AppError('Teacher response is required', 400);
     }
 
-    // Check if exam is already submitted to Admin when attempting to change marks
-    if (updatedMarks !== null && updatedMarks !== undefined) {
-      const exam = await ExamRepository.findById(doubt.examId);
-      if (exam && exam.finalSubmittedToAdmin) {
-        throw new AppError('Marks cannot be modified: Exam marks are permanently submitted to Admin.', 403);
+    const exam = await ExamRepository.findById(doubt.examId);
+    const isFinalSubmitted = Boolean(exam?.finalSubmittedToAdmin);
+
+    // If faculty also chose to adjust marks for the specific question
+    let markWasChanged = false;
+    if (updatedMarks !== null && updatedMarks !== undefined && doubt.questionNumber) {
+      const evaluation = await QuestionEvaluation.findOne({ sheetId: doubt.sheetId, questionNumber: doubt.questionNumber });
+      if (evaluation) {
+        const isDifferentMark = Number(updatedMarks) !== Number(evaluation.marksObtained);
+        if (isFinalSubmitted && isDifferentMark) {
+          throw new AppError('Marks cannot be modified: Exam marks are permanently submitted to Admin.', 403);
+        }
+        if (!isFinalSubmitted && isDifferentMark) {
+          evaluation.marksObtained = Number(updatedMarks);
+          evaluation.review = (evaluation.review ? `${evaluation.review} | ` : '') + `[Doubt Resolution]: ${teacherReply}`;
+          await evaluation.save();
+          markWasChanged = true;
+        }
       }
     }
 
@@ -373,16 +386,6 @@ class DoubtService {
     doubt.resolvedAt = new Date();
     doubt.resolvedBy = user._id;
     await doubt.save();
-
-    // If faculty also chose to adjust marks for the specific question
-    if (updatedMarks !== null && updatedMarks !== undefined && doubt.questionNumber) {
-      const evaluation = await QuestionEvaluation.findOne({ sheetId: doubt.sheetId, questionNumber: doubt.questionNumber });
-      if (evaluation) {
-        evaluation.marksObtained = Number(updatedMarks);
-        evaluation.review = (evaluation.review ? `${evaluation.review} | ` : '') + `[Doubt Resolution]: ${teacherReply}`;
-        await evaluation.save();
-      }
-    }
 
     // Notify the student about teacher's clarification
     try {
