@@ -30,16 +30,20 @@ class DashboardService {
     let partiallyCheckedPapersCount = 0;
     let notCheckedPapersCount = 0;
 
+    const isEvalDone = (e) =>
+      ['COMPLETED', 'SUBMITTED', 'LOCKED'].includes(e.status) ||
+      (e.marksObtained !== null && e.marksObtained !== undefined && e.marksObtained !== '');
+
     for (const sheet of sheets) {
       const evs = sheetEvalMap.get(sheet._id.toString()) || [];
       if (!evs.length) {
         notCheckedPapersCount += 1;
         continue;
       }
-      const lockedCount = evs.filter((e) => e.status === 'LOCKED').length;
-      if (lockedCount === evs.length) {
+      const doneCount = evs.filter(isEvalDone).length;
+      if (doneCount === evs.length) {
         checkedPapersCount += 1;
-      } else if (lockedCount > 0) {
+      } else if (doneCount > 0 || evs.some((e) => e.status === 'DRAFT' || (e.marksObtained !== null && e.marksObtained !== undefined))) {
         partiallyCheckedPapersCount += 1;
       } else {
         notCheckedPapersCount += 1;
@@ -56,8 +60,8 @@ class DashboardService {
 
       for (const sId of facultySheetIds) {
         const evs = facultyEvs.filter((ev) => ev.sheetId.toString() === sId);
-        const allLocked = evs.length > 0 && evs.every((ev) => ev.status === 'LOCKED');
-        if (allLocked) {
+        const allDone = evs.length > 0 && evs.every(isEvalDone);
+        if (allDone) {
           facultyCompletedSheets += 1;
         } else {
           facultyPendingSheets += 1;

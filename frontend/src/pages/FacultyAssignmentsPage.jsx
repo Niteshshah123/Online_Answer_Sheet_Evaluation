@@ -658,6 +658,19 @@ export default function FacultyAssignmentsPage() {
                         }}>
                           {d.questionNumber ? `Question ${d.questionNumber}` : 'General Paper Query'}
                         </span>
+                        {(d.queryCount > 1 || d.iteration > 1) && (
+                          <span style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '0.7rem',
+                            fontWeight: 700,
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            border: '1px solid #fde68a'
+                          }}>
+                            ✋ Raised {d.queryCount || d.iteration} times
+                          </span>
+                        )}
                         <span style={{
                           padding: '3px 8px',
                           borderRadius: '12px',
@@ -1071,40 +1084,76 @@ export default function FacultyAssignmentsPage() {
                                         </div>
 
                                         {/* Action Buttons for Valuation & In-Charge */}
-                                        {cohort.isCourseInCharge && (
+                                        {cohort.isCourseInCharge ? (
                                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                                            <button
-                                              type="button"
-                                              className="btn btn-secondary btn-sm"
-                                              style={{ fontSize: '0.74rem', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 8px' }}
-                                              onClick={() => handleExportAUMS(cohort.examId, `${cohort.subject}_${cohort.section}`)}
-                                              title="Download AUMS Excel score sheet"
-                                            >
-                                              <DownloadIcon /> Export AUMS
-                                            </button>
-
+                                            {/* 1. Export AUMS: only enabled after Final Submit */}
                                             <button
                                               type="button"
                                               className="btn btn-secondary btn-sm"
                                               style={{
                                                 fontSize: '0.74rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px',
                                                 padding: '4px 8px',
-                                                borderColor: cohort.isPublished ? 'var(--success)' : 'var(--border)',
-                                                color: cohort.isPublished ? 'var(--success)' : 'var(--text-primary)'
+                                                opacity: cohort.finalSubmittedToAdmin ? 1 : 0.45,
+                                                cursor: cohort.finalSubmittedToAdmin ? 'pointer' : 'not-allowed'
                                               }}
-                                              onClick={() => handleTogglePublish(cohort.examId)}
-                                              title="Allow students to view evaluated marks"
+                                              onClick={() => cohort.finalSubmittedToAdmin && handleExportAUMS(cohort.examId, `${cohort.subject}_${cohort.section}`)}
+                                              disabled={!cohort.finalSubmittedToAdmin}
+                                              title={cohort.finalSubmittedToAdmin ? "Download AUMS Excel score sheet" : "Export Excel is locked until marks are final-submitted to Admin"}
                                             >
-                                              {cohort.isPublished ? '✓ Published to Students' : '👁 Publish Results'}
+                                              <DownloadIcon /> Export AUMS
                                             </button>
 
+                                            {/* 2. Publish Results: enabled only when percent === 100 AND allCoEvaluatorsHandedOver */}
+                                            {(() => {
+                                              const canPublish = cohort.percent === 100 && cohort.allCoEvaluatorsHandedOver;
+                                              const publishDisabled = !cohort.isPublished && !canPublish;
+                                              let publishTitle = 'Allow students to view evaluated marks and raise queries';
+                                              if (cohort.isPublished) {
+                                                publishTitle = 'Click to unpublish results';
+                                              } else if (cohort.percent < 100) {
+                                                publishTitle = `Cannot publish: ${cohort.sheets.length - cohort.completedCount} paper(s) remain un-evaluated`;
+                                              } else if (!cohort.allCoEvaluatorsHandedOver) {
+                                                publishTitle = 'Cannot publish: Awaiting co-faculty evaluation handover';
+                                              }
+
+                                              return (
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-secondary btn-sm"
+                                                  style={{
+                                                    fontSize: '0.74rem',
+                                                    padding: '4px 8px',
+                                                    borderColor: cohort.isPublished ? 'var(--success)' : 'var(--border)',
+                                                    color: cohort.isPublished ? 'var(--success)' : 'var(--text-primary)',
+                                                    opacity: publishDisabled ? 0.45 : 1,
+                                                    cursor: publishDisabled ? 'not-allowed' : 'pointer'
+                                                  }}
+                                                  disabled={publishDisabled}
+                                                  onClick={() => handleTogglePublish(cohort.examId)}
+                                                  title={publishTitle}
+                                                >
+                                                  {cohort.isPublished ? '✓ Published to Students' : '👁 Publish Results'}
+                                                </button>
+                                              );
+                                            })()}
+
+                                            {/* 3. Final Submit: enabled only after Published */}
                                             {!cohort.finalSubmittedToAdmin ? (
                                               <button
                                                 type="button"
                                                 className="btn btn-primary btn-sm"
-                                                style={{ fontSize: '0.74rem', padding: '4px 8px' }}
+                                                style={{
+                                                  fontSize: '0.74rem',
+                                                  padding: '4px 8px',
+                                                  opacity: !cohort.isPublished ? 0.45 : 1,
+                                                  cursor: !cohort.isPublished ? 'not-allowed' : 'pointer'
+                                                }}
+                                                disabled={!cohort.isPublished}
                                                 onClick={() => handleFinalSubmit(cohort.examId)}
-                                                title="Lock and submit final marks to Admin"
+                                                title={cohort.isPublished ? "Lock and submit final marks to Admin" : "Final submit requires results to be published for student review first"}
                                               >
                                                 🔒 Final Submit
                                               </button>
@@ -1112,6 +1161,31 @@ export default function FacultyAssignmentsPage() {
                                               <span className="badge badge-amber" style={{ fontSize: '0.72rem' }}>
                                                 🔒 Locked & Submitted
                                               </span>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          /* Co-Faculty Actions: Submit / Handover to Course In-Charge */
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                            {cohort.isHandedOver ? (
+                                              <span className="badge badge-success" style={{ fontSize: '0.72rem', padding: '4px 8px' }}>
+                                                ✓ Handed Over to In-Charge
+                                              </span>
+                                            ) : (
+                                              <button
+                                                type="button"
+                                                className="btn btn-secondary btn-sm"
+                                                style={{
+                                                  fontSize: '0.74rem',
+                                                  padding: '4px 8px',
+                                                  opacity: cohort.percent < 100 ? 0.45 : 1,
+                                                  cursor: cohort.percent < 100 ? 'not-allowed' : 'pointer'
+                                                }}
+                                                disabled={cohort.percent < 100}
+                                                onClick={() => handleHandover(cohort.examId)}
+                                                title={cohort.percent < 100 ? `Complete 100% of your assigned papers (${cohort.completedCount}/${cohort.sheets.length}) to submit to In-Charge` : "Submit completed evaluations to Course Handling Faculty"}
+                                              >
+                                                🤝 Submit to Course In-Charge
+                                              </button>
                                             )}
                                           </div>
                                         )}
@@ -1329,27 +1403,33 @@ export default function FacultyAssignmentsPage() {
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
                     Adjust / Update Question {selectedDoubt.questionNumber} Marks (Optional)
                   </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0"
-                      max={selectedDoubt.maxMark || 100}
-                      value={updatedMarks}
-                      onChange={(e) => setUpdatedMarks(e.target.value)}
-                      placeholder="Enter new marks"
-                      className="form-control"
-                      style={{
-                        width: '130px',
-                        padding: '8px 10px',
-                        fontSize: '0.85rem',
-                        fontWeight: 700
-                      }}
-                    />
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Max: {selectedDoubt.maxMark ?? '—'} marks
-                    </span>
-                  </div>
+                  {selectedDoubt.finalSubmittedToAdmin ? (
+                    <div style={{ padding: '8px 12px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '0.75rem', color: 'var(--warning)', fontWeight: 600 }}>
+                      🔒 Marks are permanently locked (Exam submitted to Admin). You may still post an explanatory reply.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0"
+                        max={selectedDoubt.maxMark || 100}
+                        value={updatedMarks}
+                        onChange={(e) => setUpdatedMarks(e.target.value)}
+                        placeholder="Enter new marks"
+                        className="form-control"
+                        style={{
+                          width: '130px',
+                          padding: '8px 10px',
+                          fontSize: '0.85rem',
+                          fontWeight: 700
+                        }}
+                      />
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Max: {selectedDoubt.maxMark ?? '—'} marks
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
 

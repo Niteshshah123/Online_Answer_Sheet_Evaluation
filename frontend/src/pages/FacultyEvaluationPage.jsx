@@ -109,6 +109,12 @@ export default function FacultyEvaluationPage() {
   const [finalSubmittedToAdmin, setFinalSubmittedToAdmin] = useState(false);
 
   const [sheetDoubts, setSheetDoubts] = useState([]);
+  const [studentInfo, setStudentInfo] = useState({ name: 'Student', regNo: '—' });
+  const [selectedQuestionDoubt, setSelectedQuestionDoubt] = useState(null);
+  const [doubtReplyText, setDoubtReplyText] = useState('');
+  const [doubtReplyStatus, setDoubtReplyStatus] = useState('RESOLVED');
+  const [doubtAdjustedMark, setDoubtAdjustedMark] = useState('');
+  const [savingDoubtReply, setSavingDoubtReply] = useState(false);
 
   const load = async () => {
     try {
@@ -128,14 +134,24 @@ export default function FacultyEvaluationPage() {
       setCoEvaluatorMax(d.coEvaluatorMax || 0);
       setFinalSubmittedToAdmin(Boolean(d.finalSubmittedToAdmin));
       if (d.convertedScale) setTargetScale(d.convertedScale);
+      setStudentInfo({
+        name: d.studentName || 'Student',
+        regNo: d.registrationNumber || '—'
+      });
+      if (d.doubts && Array.isArray(d.doubts)) {
+        setSheetDoubts(d.doubts);
+      }
 
-      // Fetch doubts for this sheet
+      // Also refresh faculty doubts to ensure latest comments & status
       try {
         const doubtsRes = await axios.get('/api/faculty/doubts', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const allDoubts = doubtsRes.data.data || [];
-        setSheetDoubts(allDoubts.filter(db => String(db.sheetId) === String(sheetId)));
+        const filtered = allDoubts.filter(db => String(db.sheetId) === String(sheetId));
+        if (filtered.length > 0) {
+          setSheetDoubts(filtered);
+        }
       } catch (errDb) {
         console.error('Failed to load doubts for sheet:', errDb);
       }
@@ -145,6 +161,59 @@ export default function FacultyEvaluationPage() {
   };
 
   useEffect(() => { load(); }, [sheetId]);
+
+  const openDoubtModal = (qNum, evaluationId, currentMark, maxMark) => {
+    const qDoubts = sheetDoubts.filter(d => Number(d.questionNumber) === Number(qNum));
+    const latestDoubt = qDoubts[qDoubts.length - 1];
+    setSelectedQuestionDoubt({
+      questionNumber: qNum,
+      evaluationId,
+      doubts: qDoubts,
+      latestDoubt,
+      currentMark,
+      maxMark
+    });
+    setDoubtReplyText(latestDoubt?.teacherReply || '');
+    setDoubtReplyStatus(latestDoubt?.status === 'PENDING' ? 'RESOLVED' : (latestDoubt?.status || 'RESOLVED'));
+    setDoubtAdjustedMark(currentMark != null && currentMark !== undefined ? String(currentMark) : '');
+  };
+
+  const closeDoubtModal = () => {
+    setSelectedQuestionDoubt(null);
+    setDoubtReplyText('');
+    setDoubtAdjustedMark('');
+  };
+
+  const handleDoubtModalSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedQuestionDoubt || !selectedQuestionDoubt.latestDoubt) return;
+    try {
+      setSavingDoubtReply(true);
+      const token = localStorage.getItem('facultyToken');
+      const doubtId = selectedQuestionDoubt.latestDoubt._id;
+      const willAdjust = !finalSubmittedToAdmin && doubtAdjustedMark !== '' && doubtAdjustedMark !== null;
+
+      await axios.post(`/api/faculty/doubts/${doubtId}/reply`, {
+        teacherReply: doubtReplyText.trim(),
+        status: doubtReplyStatus,
+        updatedMarks: willAdjust ? Number(doubtAdjustedMark) : null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (willAdjust) {
+        updateRow(selectedQuestionDoubt.evaluationId, 'marksObtained', Math.round(Number(doubtAdjustedMark)));
+      }
+
+      setMessage(`Student query on Question ${selectedQuestionDoubt.questionNumber} updated successfully.`);
+      closeDoubtModal();
+      await load();
+    } catch (err) {
+      setErrorMessage(err.response?.data?.message || 'Failed to submit doubt resolution');
+    } finally {
+      setSavingDoubtReply(false);
+    }
+  };
 
   const isMidTerm = useMemo(() => {
     const t = String(examType || '').toLowerCase();
@@ -590,14 +659,14 @@ export default function FacultyEvaluationPage() {
         </div>
       )}
 
-      {/* Dynamic Panel Grid Layout */}
+      {/* Dynamic Panel Grid Layout (Same 2-viewer layout for both Mid-Term and End-Sem) */}
       <div
         ref={containerRef}
         style={{
           display: 'grid',
-          gridTemplateColumns: isMidTerm
-            ? (showEvalPanel ? `${panelWidths.left}% 6px ${panelWidths.center}% 6px ${panelWidths.right}%` : '1fr 6px 1fr')
-            : (showEvalPanel ? '24% 4px 26% 6px 24% 4px 22%' : '1fr 6px 1fr 6px 1fr'),
+          gridTemplateColumns: showEvalPanel
+            ? `${panelWidths.left}% 6px ${panelWidths.center}% 6px ${panelWidths.right}%`
+            : '1fr 6px 1fr',
           flex: 1,
           overflow: 'hidden'
         }}
@@ -669,43 +738,11 @@ export default function FacultyEvaluationPage() {
         {/* Panel 2 (Student Answer Sheet OR Question Paper if swapped) */}
         {isSwapped ? renderQuestionPaperPanel() : renderStudentAnswerSheetPanel()}
 
-        {/* Resizer 2 (For Mid-Term split or End-Sem panel 3) */}
-        {(!isMidTerm || showEvalPanel) && (
+        {/* Resizer 2 (Between Viewer 2 and Marks Evaluation Panel) */}
+        {showEvalPanel && (
           <div onMouseDown={() => setIsDragging('right')}
             style={{ cursor: 'col-resize', background: isDragging === 'right' ? 'var(--amrita-maroon)' : 'var(--border)', transition: 'background 0.15s' }}
           />
-        )}
-
-        {/* Panel 3 — Official Answer Key (ONLY displayed for End-Sem / End-Term Exams) */}
-        {!isMidTerm && (
-          <>
-            <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--bg-white)', overflow: 'hidden', borderRight: '1px solid var(--border)' }}>
-              <PdfControls
-                label="Official Answer Key"
-                icon={answerKeyIcon}
-                zoom={keyZoom}
-                onZoomIn={() => setKeyZoom(z => Math.min(z + 15, 200))}
-                onZoomOut={() => setKeyZoom(z => Math.max(z - 15, 50))}
-                onRotate={() => setKeyRotate(r => (r + 90) % 360)}
-              />
-              <div style={{ flex: 1, overflow: 'auto', background: '#1e2530', display: 'flex', justifyContent: 'center', padding: '10px' }}>
-                {answerKeyPreviewUrl ? (
-                  <iframe title="Official Answer Key" src={answerKeyPreviewUrl}
-                    style={{ width: `${keyZoom}%`, minHeight: '600px', border: 'none', transform: `rotate(${keyRotate}deg)`, transition: 'transform 0.2s', borderRadius: '4px', boxShadow: '0 4px 14px rgba(0,0,0,0.35)' }}
-                  />
-                ) : (
-                  <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', padding: '40px', textAlign: 'center', alignSelf: 'center' }}>
-                    No Official Answer Key PDF available
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Resizer 3 (For 4th panel in End-Sem) */}
-            {showEvalPanel && (
-              <div style={{ cursor: 'col-resize', background: 'var(--border)' }} />
-            )}
-          </>
         )}
 
         {/* Final Panel — Question Evaluation Form */}
@@ -803,6 +840,56 @@ export default function FacultyEvaluationPage() {
                         {finalSubmittedToAdmin && row.review && (
                           <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', margin: 0, fontStyle: 'italic' }}>{row.review}</p>
                         )}
+
+                        {/* Student Doubt Query Indicator & Review Button */}
+                        {(() => {
+                          const qDoubts = sheetDoubts.filter(d => Number(d.questionNumber) === Number(row.questionNumber));
+                          if (!qDoubts.length) return null;
+                          const hasPending = qDoubts.some(d => d.status === 'PENDING' || d.status === 'IN_REVIEW');
+                          const count = qDoubts.length;
+
+                          return (
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              background: hasPending ? '#fef3c7' : '#f0fdf4',
+                              border: `1px solid ${hasPending ? '#fde68a' : '#bbf7d0'}`,
+                              borderRadius: '6px',
+                              padding: '5px 8px',
+                              marginTop: '4px'
+                            }}>
+                              <span style={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                color: hasPending ? '#92400e' : '#166534',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                <span>✋</span>
+                                <span>{hasPending ? 'Student Query Pending' : 'Query Resolved'}</span>
+                                <span style={{ opacity: 0.8, fontSize: '0.65rem' }}>({count}x)</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => openDoubtModal(row.questionNumber, row.evaluationId, row.marksObtained, row.maxMark)}
+                                style={{
+                                  background: hasPending ? '#d97706' : '#16a34a',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  padding: '3px 8px',
+                                  fontSize: '0.68rem',
+                                  fontWeight: 700,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {hasPending ? 'Resolve / Reply ➔' : 'View Query'}
+                              </button>
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   );
@@ -902,6 +989,171 @@ export default function FacultyEvaluationPage() {
           </svg>
           Assign Marks ({totals.convertedScore}/{totals.scale})
         </button>
+      )}
+
+      {/* ────────────────────────────────────────────────────────
+          IN-PAGE STUDENT QUERY RESOLUTION MODAL
+         ──────────────────────────────────────────────────────── */}
+      {selectedQuestionDoubt && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(3px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-white)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            width: '100%',
+            maxWidth: '520px',
+            boxShadow: 'var(--shadow-lg)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              background: '#1E3A5F',
+              color: '#fff',
+              padding: '14px 18px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>
+                  ✋ Student Query — Question {selectedQuestionDoubt.questionNumber}
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: '0.72rem', color: '#93c5fd' }}>
+                  {studentInfo.name} ({studentInfo.regNo}) &nbsp;•&nbsp; Raised {selectedQuestionDoubt.doubts.length} time{selectedQuestionDoubt.doubts.length > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeDoubtModal}
+                style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '1.2rem', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleDoubtModalSubmit} style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {/* Query Thread History */}
+              <div style={{
+                maxHeight: '180px',
+                overflowY: 'auto',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                background: 'var(--bg-subtle)',
+                border: '1px solid var(--border)',
+                borderRadius: '8px',
+                padding: '12px'
+              }}>
+                {selectedQuestionDoubt.doubts.map((d, idx) => (
+                  <div key={d._id || idx} style={{ borderBottom: idx < selectedQuestionDoubt.doubts.length - 1 ? '1px dashed var(--border)' : 'none', paddingBottom: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '3px' }}>
+                      <span>Query #{idx + 1} &nbsp;·&nbsp; {d.category || 'DOUBT'}</span>
+                      <span>{new Date(d.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500, fontStyle: 'italic', marginBottom: '4px' }}>
+                      "{d.comment}"
+                    </div>
+                    {d.teacherReply && (
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 10px', borderRadius: '6px', fontSize: '0.74rem', color: '#166534', marginTop: '4px' }}>
+                        <strong>Your Reply:</strong> {d.teacherReply}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Adjust Question Mark (Gated) */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Marks for Question {selectedQuestionDoubt.questionNumber} (Max: {selectedQuestionDoubt.maxMark ?? '—'})
+                </label>
+                {finalSubmittedToAdmin ? (
+                  <div style={{ padding: '8px 12px', background: 'var(--warning-bg)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '0.74rem', color: 'var(--warning)', fontWeight: 600 }}>
+                    🔒 Marks are permanently locked (Exam submitted to Admin). You may provide an explanatory clarification below.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min="0"
+                      max={selectedQuestionDoubt.maxMark || 100}
+                      step="1"
+                      value={doubtAdjustedMark}
+                      onChange={(e) => setDoubtAdjustedMark(e.target.value)}
+                      placeholder="Enter marks"
+                      className="form-control"
+                      style={{ width: '120px', padding: '6px 10px', fontSize: '0.85rem', fontWeight: 700 }}
+                    />
+                    <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                      Current: {selectedQuestionDoubt.currentMark ?? '—'} / {selectedQuestionDoubt.maxMark ?? '—'}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Resolution Status */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Resolution Status
+                </label>
+                <select
+                  value={doubtReplyStatus}
+                  onChange={(e) => setDoubtReplyStatus(e.target.value)}
+                  className="form-control"
+                  style={{ width: '100%', padding: '6px 10px', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  <option value="RESOLVED">Resolved (Answered & Updated)</option>
+                  <option value="REJECTED">Reviewed (Keep Marks As Is)</option>
+                  <option value="IN_REVIEW">Under Review</option>
+                </select>
+              </div>
+
+              {/* Reply Comment */}
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  Teacher Clarification & Explanation <span style={{ color: '#dc2626' }}>*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={doubtReplyText}
+                  onChange={(e) => setDoubtReplyText(e.target.value)}
+                  placeholder="Explain the marks or provide clarification to the student..."
+                  className="form-control"
+                  style={{ width: '100%', padding: '8px', fontSize: '0.8rem', boxSizing: 'border-box' }}
+                  required
+                />
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={closeDoubtModal}
+                  disabled={savingDoubtReply}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-sm"
+                  disabled={savingDoubtReply}
+                >
+                  {savingDoubtReply ? 'Saving...' : 'Submit Resolution'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

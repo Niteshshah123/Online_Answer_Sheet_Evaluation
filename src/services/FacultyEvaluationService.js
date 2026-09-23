@@ -77,8 +77,14 @@ class FacultyEvaluationService {
       }))
       .sort((a, b) => a.questionNumber - b.questionNumber);
 
+    const DoubtRepository = require('../repositories/DoubtRepository');
+    const sheetDoubts = await DoubtRepository.model.find({ sheetId: sheet._id }).sort({ createdAt: 1 });
+    const student = await StudentRepository.findById(sheet.studentId);
+
     return {
       sheetId: sheet._id,
+      studentName: student?.name || 'Student',
+      registrationNumber: student?.registrationNumber || '—',
       sheetPdfUrl: sheet.pdfUrl || '',
       questionPaperUrl,
       answerKeyUrl,
@@ -96,7 +102,8 @@ class FacultyEvaluationService {
         maxMark: exam?.questionWeightage?.[item.questionNumber - 1] ?? null,
         facultyId: item.facultyId
       })),
-      coEvaluators
+      coEvaluators,
+      doubts: sheetDoubts
     };
   }
 
@@ -257,13 +264,27 @@ class FacultyEvaluationService {
       throw new AppError('Only the Course Handling Faculty can publish results for student review.', 403);
     }
 
-    // Verify all answer sheets for this exam have 100% completed question evaluations across ALL questions
-    const answerSheets = await AnswerSheetRepository.findAll({ examId });
-    for (const sheet of answerSheets) {
-      const evals = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
-      const pendingCount = evals.filter((e) => e.marksObtained === null || e.marksObtained === undefined).length;
-      if (pendingCount > 0) {
-        throw new AppError(`Cannot Publish for Review: Co-faculty or section evaluations are incomplete. ${pendingCount} question(s) remain un-evaluated across section papers.`, 400);
+    if (!exam.isPublished) {
+      // 1. Verify all co-evaluators for this exam cohort have handed over to In-Charge
+      const examAllocations = await QuestionAllocationRepository.findByExam(exam._id);
+      const examFacultyIds = Array.from(new Set(examAllocations.map((a) => a.facultyId.toString())));
+      const inChargeId = exam.courseInChargeFacultyId ? exam.courseInChargeFacultyId.toString() : null;
+      const coEvaluatorIds = examFacultyIds.filter((id) => id !== inChargeId);
+      const handedOverIds = (exam.handedOverFacultyIds || []).map((id) => id.toString());
+      const allHandedOver = coEvaluatorIds.length === 0 || coEvaluatorIds.every((id) => handedOverIds.includes(id));
+
+      if (!allHandedOver) {
+        throw new AppError('Cannot Publish for Review: Co-faculty evaluations have not been handed over to the Course In-Charge yet.', 400);
+      }
+
+      // 2. Verify all answer sheets for this exam have 100% completed question evaluations across ALL questions
+      const answerSheets = await AnswerSheetRepository.findAll({ examId });
+      for (const sheet of answerSheets) {
+        const evals = await QuestionEvaluationRepository.findAll({ sheetId: sheet._id });
+        const pendingCount = evals.filter((e) => e.marksObtained === null || e.marksObtained === undefined).length;
+        if (pendingCount > 0) {
+          throw new AppError(`Cannot Publish for Review: Co-faculty or section evaluations are incomplete. ${pendingCount} question(s) remain un-evaluated across section papers.`, 400);
+        }
       }
     }
 

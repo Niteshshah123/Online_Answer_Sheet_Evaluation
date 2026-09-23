@@ -63,14 +63,14 @@ export default function StudentDoubtsPage() {
   // Statistics
   const totalCount = doubts.length;
   const pendingCount = doubts.filter(d => d.status === 'PENDING' || d.status === 'IN_REVIEW').length;
-  const resolvedCount = doubts.filter(d => d.status === 'RESOLVED').length;
+  const resolvedCount = doubts.filter(d => d.status === 'RESOLVED' || d.status === 'REJECTED').length;
 
   // Filtered list
   const uniqueSubjects = Array.from(new Set(doubts.map(d => d.subject).filter(Boolean)));
 
   const filteredDoubts = doubts.filter(d => {
     if (statusFilter === 'PENDING' && (d.status !== 'PENDING' && d.status !== 'IN_REVIEW')) return false;
-    if (statusFilter === 'RESOLVED' && d.status !== 'RESOLVED') return false;
+    if (statusFilter === 'RESOLVED' && d.status !== 'RESOLVED' && d.status !== 'REJECTED') return false;
     if (subjectFilter !== 'ALL' && d.subject !== subjectFilter) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();

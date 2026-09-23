@@ -74,6 +74,22 @@ class DoubtService {
       facultyId = exam.courseInChargeFacultyId;
     }
 
+    if (qNum) {
+      const existingPending = await DoubtRepository.model.findOne({
+        sheetId: sheet._id,
+        questionNumber: qNum,
+        status: { $in: ['PENDING', 'IN_REVIEW'] }
+      });
+      if (existingPending) {
+        throw new AppError('A query is already pending for this question. You can raise another query once your teacher replies.', 400);
+      }
+    }
+
+    const existingCount = qNum
+      ? await DoubtRepository.model.countDocuments({ sheetId: sheet._id, questionNumber: qNum })
+      : 0;
+    const iteration = existingCount + 1;
+
     const doubt = await DoubtRepository.create({
       sheetId: sheet._id,
       examId: exam._id,
@@ -82,7 +98,8 @@ class DoubtService {
       questionNumber: qNum,
       category: category || 'DOUBT',
       comment: String(comment).trim(),
-      status: 'PENDING'
+      status: 'PENDING',
+      iteration
     });
 
     // Notify the evaluator or in-charge faculty
@@ -160,17 +177,19 @@ class DoubtService {
         exam = await Exam.findById(d.examId);
       }
       if (d.sheetId) {
-        sheet = await AnswerSheet.findById(d.sheetId);
+        sheet = await AnswerSheetRepository.findById(d.sheetId);
       }
 
       let currentMark = null;
       let maxMark = null;
+      let queryCount = 1;
       if (d.questionNumber && d.sheetId) {
         const ev = await QuestionEvaluation.findOne({ sheetId: d.sheetId, questionNumber: d.questionNumber });
         currentMark = ev ? ev.marksObtained : null;
         if (exam && exam.questionWeightage) {
           maxMark = exam.questionWeightage[d.questionNumber - 1] ?? null;
         }
+        queryCount = await DoubtRepository.model.countDocuments({ sheetId: d.sheetId, questionNumber: d.questionNumber });
       }
 
       enriched.push({
@@ -185,7 +204,9 @@ class DoubtService {
         examName: exam ? `${exam.subject} (${exam.examType || 'Exam'})` : 'Exam',
         sheetPdfUrl: sheet?.pdfUrl || '',
         currentMark,
-        maxMark
+        maxMark,
+        queryCount,
+        finalSubmittedToAdmin: Boolean(exam?.finalSubmittedToAdmin)
       });
     }
 
@@ -293,11 +314,15 @@ class DoubtService {
       // Check current marks if question-specific
       let currentMark = null;
       let maxMark = null;
+      let queryCount = 1;
       if (d.questionNumber) {
         const ev = await QuestionEvaluation.findOne({ sheetId: d.sheetId, questionNumber: d.questionNumber });
         currentMark = ev ? ev.marksObtained : null;
         if (exam && exam.questionWeightage) {
           maxMark = exam.questionWeightage[d.questionNumber - 1] ?? null;
+        }
+        if (d.sheetId) {
+          queryCount = await DoubtRepository.model.countDocuments({ sheetId: d.sheetId, questionNumber: d.questionNumber });
         }
       }
 
@@ -310,7 +335,9 @@ class DoubtService {
         examContext: exam ? `${exam.semester} ${exam.section} ${exam.examType}` : '',
         sheetPdfUrl: sheet?.pdfUrl || '',
         currentMark,
-        maxMark
+        maxMark,
+        queryCount,
+        finalSubmittedToAdmin: Boolean(exam?.finalSubmittedToAdmin)
       });
     }
 
@@ -331,6 +358,14 @@ class DoubtService {
 
     if (!teacherReply || !String(teacherReply).trim()) {
       throw new AppError('Teacher response is required', 400);
+    }
+
+    // Check if exam is already submitted to Admin when attempting to change marks
+    if (updatedMarks !== null && updatedMarks !== undefined) {
+      const exam = await ExamRepository.findById(doubt.examId);
+      if (exam && exam.finalSubmittedToAdmin) {
+        throw new AppError('Marks cannot be modified: Exam marks are permanently submitted to Admin.', 403);
+      }
     }
 
     doubt.teacherReply = String(teacherReply).trim();

@@ -9,6 +9,10 @@ class AnswerSheetRepository extends BaseRepository {
   async findByStudentAndExam(studentId, examId) {
     return this.model.findOne({ studentId, examId });
   }
+
+  async findByStudentId(studentId) {
+    return this.model.find({ studentId });
+  }
 }
 
 module.exports = new AnswerSheetRepository();

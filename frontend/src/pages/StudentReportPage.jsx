@@ -223,23 +223,16 @@ export default function StudentReportPage() {
         {/* PDF viewer */}
         <div className="card" style={{ overflow: 'hidden' }}>
           <div className="card-header" style={{ padding: '0', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex' }}>
-              {[['sheet', 'Answer Sheet (Evaluated)'], ['key', 'Answer Key & Scheme']].map(([tab, label]) => (
-                <button key={tab} onClick={() => setPdfTab(tab)} style={{
-                  flex: 1, padding: '12px 14px', fontSize: '0.8rem', fontWeight: 700,
-                  background: pdfTab === tab ? 'var(--bg-white)' : 'var(--bg-subtle)', border: 'none', cursor: 'pointer',
-                  borderBottom: `3px solid ${pdfTab === tab ? 'var(--amrita-maroon)' : 'transparent'}`,
-                  color: pdfTab === tab ? 'var(--amrita-maroon)' : 'var(--text-muted)',
-                  transition: 'all 0.15s ease',
-                }}>{label}</button>
-              ))}
+            {/* Answer Key & Scheme commented out: students only view their evaluated answer sheet */}
+            <div style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--amrita-maroon)' }}>
+              Evaluated Answer Sheet
             </div>
           </div>
           <div style={{ height: '560px', background: '#1e2530', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {(pdfTab === 'sheet' ? sheetUrl : keyUrl) ? (
+            {sheetUrl ? (
               <iframe
-                title={pdfTab}
-                src={pdfTab === 'sheet' ? sheetUrl : keyUrl}
+                title="Student Evaluated Answer Sheet"
+                src={sheetUrl}
                 style={{ width: '100%', height: '100%', border: 'none' }}
               />
             ) : (
@@ -298,7 +291,7 @@ export default function StudentReportPage() {
                       </td>
                       <td style={{ textAlign: 'right' }}>
                         {latestDoubt ? (
-                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                             <span style={{
                               padding: '2px 6px',
                               borderRadius: '4px',
@@ -313,6 +306,26 @@ export default function StudentReportPage() {
                             }}>
                               ✋ {doubtStatusCfg(latestDoubt.status).label}
                             </span>
+                            {/* If doubt is resolved or reviewed, student can re-raise if not satisfied */}
+                            {['RESOLVED', 'REJECTED'].includes(latestDoubt.status) && (
+                              <button
+                                onClick={() => openRaiseModal(item.questionNumber)}
+                                className="btn btn-ghost btn-xs"
+                                title="Re-raise query for this question if not satisfied"
+                                style={{
+                                  padding: '2px 6px',
+                                  fontSize: '0.68rem',
+                                  color: 'var(--accent)',
+                                  fontWeight: 600,
+                                  background: 'var(--accent-light)',
+                                  border: '1px solid var(--accent-border)',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                ✋ Re-raise Hand
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <button
