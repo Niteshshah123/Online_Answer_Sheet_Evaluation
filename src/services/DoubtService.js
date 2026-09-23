@@ -102,14 +102,19 @@ class DoubtService {
       iteration
     });
 
-    // Notify the evaluator or in-charge faculty
+    // Notify only the assigned evaluator for this question (or in-charge for general query)
     try {
       let targetUserId = null;
       if (facultyId) {
         const facDoc = await FacultyRepository.findById(facultyId);
-        if (facDoc && facDoc.userId) targetUserId = facDoc.userId;
+        if (facDoc && facDoc.userId) {
+          targetUserId = facDoc.userId;
+        } else {
+          const userDoc = await User.findById(facultyId);
+          if (userDoc) targetUserId = userDoc._id;
+        }
       }
-      if (!targetUserId && exam.courseInChargeFacultyId) {
+      if (!targetUserId && !qNum && exam.courseInChargeFacultyId) {
         const inChargeDoc = await FacultyRepository.findById(exam.courseInChargeFacultyId);
         if (inChargeDoc && inChargeDoc.userId) targetUserId = inChargeDoc.userId;
       }
@@ -238,9 +243,14 @@ class DoubtService {
     if (doubt.facultyId) {
       try {
         const faculty = await FacultyRepository.findById(doubt.facultyId);
-        if (faculty && faculty.userId) {
+        let targetUserId = faculty?.userId;
+        if (!targetUserId) {
+          const uDoc = await User.findById(doubt.facultyId);
+          if (uDoc) targetUserId = uDoc._id;
+        }
+        if (targetUserId) {
           await NotificationService.createNotification({
-            userId: faculty.userId,
+            userId: targetUserId,
             title: `🔄 Student Follow-up: Q${doubt.questionNumber || 'Paper'}`,
             message: `Student posted a follow-up query: "${followUpComment.substring(0, 100)}"`,
             type: 'DOUBT_FOLLOWUP',
@@ -268,42 +278,64 @@ class DoubtService {
       throw new AppError('Faculty entity not found', 404);
     }
 
-    // Find all sheets where this faculty is assigned or evaluated ANY question
-    const evaluatedSheetIds = await QuestionEvaluation.distinct('sheetId', {
-      $or: [{ facultyId: faculty._id }, { facultyId: user._id }]
-    });
+    const facIds = [faculty._id, user._id];
 
-    // Find all exams where this faculty is in-charge or allocated
+    // Find all question evaluations assigned specifically to this faculty
+    const myEvals = await QuestionEvaluation.find({
+      facultyId: { $in: facIds }
+    }, 'sheetId questionNumber').lean();
+
+    // Map of sheetId -> Set of question numbers assigned to this faculty
+    const mySheetQuestionsMap = new Map();
+    for (const ev of myEvals) {
+      const sId = String(ev.sheetId);
+      if (!mySheetQuestionsMap.has(sId)) {
+        mySheetQuestionsMap.set(sId, new Set());
+      }
+      mySheetQuestionsMap.get(sId).add(Number(ev.questionNumber));
+    }
+
+    // Find exams where this faculty is the course in-charge (for general paper doubts)
     const inChargeExams = await Exam.find({
       $or: [{ courseInChargeFacultyId: faculty._id }, { courseInChargeFacultyId: user._id }]
     }).distinct('_id');
+    const inChargeExamIdsSet = new Set(inChargeExams.map(String));
 
-    const allocatedExams = await QuestionAllocation.distinct('examId', {
-      $or: [{ facultyId: faculty._id }, { facultyId: user._id }]
-    });
+    // Find question allocations for fallback
+    const myAllocations = await QuestionAllocation.find({
+      facultyId: { $in: facIds }
+    }).lean();
 
-    const relevantExamIds = [...new Set([...inChargeExams.map(String), ...allocatedExams.map(String)])];
-
-    const orConditions = [
-      { facultyId: faculty._id },
-      { facultyId: user._id }
-    ];
-
-    if (evaluatedSheetIds.length > 0) {
-      orConditions.push({ sheetId: { $in: evaluatedSheetIds } });
-    }
-    if (relevantExamIds.length > 0) {
-      orConditions.push({ examId: { $in: relevantExamIds } });
-    }
-    orConditions.push({ facultyId: null });
-
-    const query = { $or: orConditions };
-
+    const baseQuery = {};
     if (statusFilter && statusFilter !== 'ALL') {
-      query.status = statusFilter;
+      baseQuery.status = statusFilter;
     }
 
-    const rawDoubts = await DoubtRepository.model.find(query).sort({ createdAt: -1 });
+    const allDoubts = await DoubtRepository.model.find(baseQuery).sort({ createdAt: -1 });
+
+    // Filter doubts to only those strictly belonging to this faculty
+    const rawDoubts = allDoubts.filter(d => {
+      const doubtFacIdStr = d.facultyId ? String(d.facultyId) : null;
+      const isMyFacId = doubtFacIdStr && (doubtFacIdStr === String(faculty._id) || doubtFacIdStr === String(user._id));
+
+      if (d.questionNumber) {
+        const qNum = Number(d.questionNumber);
+        const sId = String(d.sheetId);
+
+        if (isMyFacId) return true;
+        const assignedQs = mySheetQuestionsMap.get(sId);
+        if (assignedQs && assignedQs.has(qNum)) return true;
+        const isAllocated = myAllocations.some(a =>
+          String(a.examId) === String(d.examId) && qNum >= a.fromQuestion && qNum <= a.toQuestion
+        );
+        if (isAllocated) return true;
+        return false;
+      } else {
+        if (isMyFacId) return true;
+        if (inChargeExamIdsSet.has(String(d.examId))) return true;
+        return false;
+      }
+    });
     const enriched = [];
 
     for (const d of rawDoubts) {

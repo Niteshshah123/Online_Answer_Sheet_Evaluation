@@ -37,6 +37,9 @@ class DistributionService {
       }));
     }
 
+    const importService = require('./ImportService');
+    await importService.ensureEvaluationsForExam(exam);
+
     return created;
   }
 }

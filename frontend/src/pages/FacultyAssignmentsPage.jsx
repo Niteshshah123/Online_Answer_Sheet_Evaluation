@@ -100,7 +100,7 @@ export default function FacultyAssignmentsPage() {
   const [replyStatus, setReplyStatus] = useState('RESOLVED');
   const [updatedMarks, setUpdatedMarks] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
-  const [doubtFilterStatus, setDoubtFilterStatus] = useState('ALL');
+  const [doubtFilterStatus, setDoubtFilterStatus] = useState('PENDING');
 
   // Search & Filter State
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,11 +186,12 @@ export default function FacultyAssignmentsPage() {
     try {
       setSubmittingReply(true);
       setErrorMessage('');
+      const token = localStorage.getItem('facultyToken');
       const willUpdateMarks = !selectedDoubt.finalSubmittedToAdmin && updatedMarks !== '' && updatedMarks !== null;
       await axios.post(`/api/faculty/doubts/${selectedDoubt._id}/reply`, {
         teacherReply: replyText.trim(),
         status: replyStatus,
-        updatedMarks: willUpdateMarks ? Number(updatedMarks) : null
+        updatedMarks: willUpdateMarks ? Math.round(Number(updatedMarks)) : null
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -540,11 +541,11 @@ export default function FacultyAssignmentsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginRight: '4px' }}>Filter:</span>
               {[
-                ['ALL', `All (${doubts.length})`],
                 ['PENDING', `Pending (${doubts.filter(d => d.status === 'PENDING').length})`],
                 ['IN_REVIEW', `In Review (${doubts.filter(d => d.status === 'IN_REVIEW').length})`],
                 ['RESOLVED', `Resolved (${doubts.filter(d => d.status === 'RESOLVED').length})`],
-                ['REJECTED', `Reviewed (${doubts.filter(d => d.status === 'REJECTED').length})`]
+                ['REJECTED', `Reviewed (${doubts.filter(d => d.status === 'REJECTED').length})`],
+                ['ALL', `All (${doubts.length})`]
               ].map(([st, label]) => (
                 <button
                   key={st}
@@ -1411,7 +1412,7 @@ export default function FacultyAssignmentsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input
                         type="number"
-                        step="0.5"
+                        step="1"
                         min="0"
                         max={selectedDoubt.maxMark || 100}
                         value={updatedMarks}

@@ -325,14 +325,10 @@ class ImportService {
             facultyId: assignedFaculty.facultyId
           });
         } else {
-          // Re-sync faculty assignment if evaluation hasn't been evaluated or submitted yet
-          const isPending =
-            (existing.status === 'PENDING' || !existing.status) &&
-            (existing.marksObtained === null || existing.marksObtained === undefined) &&
-            !existing.evaluatorSubmitted;
+          // Re-sync faculty assignment if exam is not final submitted to admin yet
           const targetFacultyIdStr = assignedFaculty.facultyId.toString();
 
-          if (isPending && existing.facultyId?.toString() !== targetFacultyIdStr) {
+          if (!exam.finalSubmittedToAdmin && existing.facultyId?.toString() !== targetFacultyIdStr) {
             existing.facultyId = assignedFaculty.facultyId;
             existing.updatedAt = new Date();
             await existing.save();

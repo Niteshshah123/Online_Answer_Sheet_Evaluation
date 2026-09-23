@@ -164,7 +164,8 @@ export default function FacultyEvaluationPage() {
 
   const openDoubtModal = (qNum, evaluationId, currentMark, maxMark) => {
     const qDoubts = sheetDoubts.filter(d => Number(d.questionNumber) === Number(qNum));
-    const latestDoubt = qDoubts[qDoubts.length - 1];
+    const pendingDoubt = qDoubts.find(d => d.status === 'PENDING' || d.status === 'IN_REVIEW');
+    const latestDoubt = pendingDoubt || [...qDoubts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
     setSelectedQuestionDoubt({
       questionNumber: qNum,
       evaluationId,
@@ -196,7 +197,7 @@ export default function FacultyEvaluationPage() {
       await axios.post(`/api/faculty/doubts/${doubtId}/reply`, {
         teacherReply: doubtReplyText.trim(),
         status: doubtReplyStatus,
-        updatedMarks: willAdjust ? Number(doubtAdjustedMark) : null
+        updatedMarks: willAdjust ? Math.round(Number(doubtAdjustedMark)) : null
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
